@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Noto_Sans_Mono } from "next/font/google";
 import { PwaRegistration } from "@/components/PwaRegistration";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
+import { PALETTE_INIT_SCRIPT } from "@/lib/theme-palettes";
 import { FONT_INIT_SCRIPT } from "@/lib/font-preferences";
 import "katex/dist/katex.min.css";
 import "./globals.css";
@@ -85,6 +86,11 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: THEME_INIT_SCRIPT,
+          }}
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: PALETTE_INIT_SCRIPT,
           }}
         />
       </head>

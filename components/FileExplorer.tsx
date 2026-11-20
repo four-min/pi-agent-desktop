@@ -906,6 +906,8 @@ function ChangesViewToggleIcon({ mode }: { mode: ChangesViewMode }) {
   );
 }
 
+const expandedPathsByCwd = new Map<string, Set<string>>();
+
 export const FileExplorer = forwardRef<FileExplorerHandle, Props>(function FileExplorer({
   cwd,
   onOpenFile,
@@ -923,7 +925,7 @@ export const FileExplorer = forwardRef<FileExplorerHandle, Props>(function FileE
   const [roots, setRoots] = useState<FileNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => new Set(expandedPathsByCwd.get(cwd) ?? []));
   const [treeRefreshKey, setTreeRefreshKey] = useState(0);
   const [highlightedPaths, setHighlightedPaths] = useState<Set<string>>(new Set());
   const [gitFiles, setGitFiles] = useState<GitFileStatus[]>([]);
@@ -1042,9 +1044,10 @@ export const FileExplorer = forwardRef<FileExplorerHandle, Props>(function FileE
     setExpandedPaths((prev) => {
       const next = new Set(prev);
       if (open) next.add(fullPath); else next.delete(fullPath);
+      expandedPathsByCwd.set(cwd, next);
       return next;
     });
-  }, []);
+  }, [cwd]);
 
   const applyUploadResult = useCallback((data: UploadResponse, directory: string) => {
     const uploaded = data.uploaded ?? [];
@@ -1152,9 +1155,9 @@ export const FileExplorer = forwardRef<FileExplorerHandle, Props>(function FileE
     const cwdChanged = prevCwdRef.current !== cwd;
     prevCwdRef.current = cwd;
 
-    // Reset expanded state only when cwd changes, not on refreshKey bumps
+    // Restore per-cwd expanded state when cwd changes, not on refreshKey bumps
     if (cwdChanged) {
-      setExpandedPaths(new Set());
+      setExpandedPaths(new Set(expandedPathsByCwd.get(cwd) ?? []));
       setHighlightedPaths(new Set());
       setUploadSummary(null);
       setPendingConflict(null);

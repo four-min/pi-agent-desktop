@@ -81,6 +81,40 @@ history or modify the outbox. A clear-generation guard rejects late attachment
 read/conversion results and revokes discarded image preview URLs. Cancel remains
 a separate, non-destructive action that only leaves history-edit mode.
 
+## Prompt enhancement (composer sparkle button)
+
+A draft-only button beside Send (`components/ComposerEnhanceButton.tsx`, hidden
+in the compact quote composer) rewrites the draft with a model. `ChatInput`
+owns the pending/error state and the admission rule: the rewrite lands only
+while the draft text is unchanged, the composer still holds the same draft key,
+and no clear/send bumped the enhance generation — typing, clearing or switching
+chats mid-flight keeps the user's text and discards the result. While pending,
+the button becomes Cancel (`onEnhanceCancel` aborts the fetch); an AbortError
+stays silent, other failures show a dismissible `ModelNoticeBanner`. The button
+shows whenever a session exists or could start (`session?.id ??
+sessionIdRef.current ?? newSessionCwd`); on a brand-new session the click first
+resolves the id through `ensureSessionForEnhance` (`useAgentSession`'s
+`ensureNewSession`, the same non-prompt `ensure_session` path the System panel
+and slash palette use — no message, no run, no sidebar promotion), so a draft
+can be enhanced before the first send.
+
+The request is `POST /api/agent/[id]/enhance-prompt { draft }` →
+`AgentSessionWrapper.enhancePromptDraft()` (`lib/rpc-manager.ts`): one
+`modelRuntime.completeSimple()` side request, exactly like the auto title —
+no transcript entry, no tools, no run, safe while a run streams; it resets the
+idle timer on both ends. `lib/prompt-enhance.ts` builds the bounded one-turn
+request (system prompt + `<draft>` block, cheapest supported thinking level,
+fresh session id, `cacheRetention: "none"`, 120 s timeout, 24 000-char draft cap)
+and strips a whole-answer code fence. The model comes from
+`lib/prompt-enhance-settings.ts` (`promptEnhance.model` in pi-web's settings.json,
+`GET/PUT /api/prompt-enhance/settings`); unset — the default — follows the
+conversation's current model, with the session's own model as fallback when the
+configured one left the catalog. Settings › General › Chat hosts the picker
+(`components/PromptEnhanceSettingRow.tsx`, AppSelect, same enabled-models-scoped
+list as the Chats section). Client hook: `hooks/usePromptEnhance.ts` (one request
+at a time, abortable). Tests: `node --test lib/prompt-enhance*.test.mjs
+components/ChatInput.enhance.test.mjs`.
+
 ## Conversation find
 
 `ConversationFind` is mounted by `ChatWindow`. Ctrl+F / Cmd+F searches the current

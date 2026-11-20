@@ -1145,6 +1145,17 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
 
   const loadSlashCommands = useCallback(async () => (await requestSlashCommands()) ?? [], [requestSlashCommands]);
 
+  // The composer's enhance button on a brand-new session: the draft exists
+  // before any send, so the runtime is created on demand here (ensure_session,
+  // the same non-prompt path the System panel and the slash palette use). No
+  // message, no run, no sidebar promotion — the session stays "new" until the
+  // first send. Null when there is no cwd to create it in.
+  const ensureSessionForEnhance = useCallback(async (): Promise<string | null> => {
+    const sid = sessionIdRef.current ?? await ensureNewSession();
+    if (!sid || !sessionHookMountedRef.current || sessionIdRef.current !== sid) return null;
+    return sid;
+  }, [ensureNewSession]);
+
   // The list a bare /mcp is decided by: the request under way (the palette starts
   // one as "/mcp" is typed, often still unanswered at Enter), else the list already
   // loaded, else a new request. Null when it cannot be read: guessing would either
@@ -3144,7 +3155,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     // Present only while a history edit is pending.
     cancelEdit: editEntryId ? cancelEdit : undefined,
     setNoticePaused: setPausedNoticeId,
-    handleToolPresetChange, handleChatAccessRebuilt, handleThinkingLevelChange, handleSetDefaultModel, handleSetDefaultThinkingLevel, loadTools, loadSlashCommands, setActiveLeafId, setData, setMessages, loadContext,
+    handleToolPresetChange, handleChatAccessRebuilt, handleThinkingLevelChange, handleSetDefaultModel, handleSetDefaultThinkingLevel, loadTools, loadSlashCommands, ensureSessionForEnhance, setActiveLeafId, setData, setMessages, loadContext,
     scrollToBottom, scrollUserMsgToTop, scrollToMessage,
     dispatch, setAgentRunning, setForkingEntryId,
     bashRunning, pendingBash, summarizationRetry, automation, handleSetAutomation,

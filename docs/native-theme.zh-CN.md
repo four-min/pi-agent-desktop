@@ -40,6 +40,15 @@
      后写的规则没法"删掉"前面的声明。
 2. **变量。** `:root` 放浅色配色，`html.dark` 放暗色配色。class 由 `hooks/useTheme.ts` 切换：
    用户没手动选主题之前跟随系统。
+   **内置主题**（设置 › 外观 › 主题）叠加在明暗模式之上：`hooks/useThemePalette.ts` 设置
+   `<html data-palette>`（注册表在 `lib/theme-palettes.ts`，`app/layout.tsx` 里的
+   `PALETTE_INIT_SCRIPT` 在首帧前恢复），文件末尾的主题 token 块重绘同一组语义变量。
+   “默认”不带属性。第一个内置主题是 **Claude**——Claude Desktop 的暖陶土色
+   （强调色 `#d97757`，外围 `#fafafa` / `#1f1f1f`，阅读面白色 / `#191919`），
+   参考 Nwflower/dsh-claude-style（MIT）。主题拥有自己的强调色：必须盖过
+   `@supports (color: AccentColor)` 的系统强调色块，所以主题块放在文件最后。
+   新增主题 = 一条注册表项 + 一对浅/深 token 块 + 选择器的色板颜色。
+   验证命令为 `node e2e/palettes.mjs`（选择、变量、持久化、与跟随系统的配合）。
 3. **各组件分区**，大致按 DOM 顺序：侧栏、顶栏、弹出层/弹窗、设置、输入框、消息/markdown、
    文件工作区、响应式外壳。文件最后是 "final workbench pass"，必须留在响应式规则之后。
 

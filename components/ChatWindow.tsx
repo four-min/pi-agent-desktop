@@ -29,6 +29,7 @@ import { useAgentSession, type AgentEndInfo, type NoticeItem } from "@/hooks/use
 import { useDragDrop } from "@/hooks/useDragDrop";
 import { useScrollbarVisibility } from "@/hooks/useScrollbarVisibility";
 import { useArtifactPublisher } from "@/hooks/useArtifactPublisher";
+import { usePromptEnhance } from "@/hooks/usePromptEnhance";
 import type { SessionStatsInfo } from "@/lib/pi-types";
 import { importDroppedProjectFiles, partitionChatDroppedFiles } from "@/lib/chat-file-drop";
 import { formatAttachmentSize } from "@/lib/chat-attachments";
@@ -329,7 +330,7 @@ export function ChatWindow({ session, workspaceKind, searchTarget, onSearchTarge
     dismissModelScopeWarnings,
     handleRecallQueue,
     handleBuiltinSlashCommand,
-    handleToolPresetChange, handleChatAccessRebuilt, handleThinkingLevelChange, handleSetDefaultModel, handleSetDefaultThinkingLevel, loadSlashCommands, scrollUserMsgToTop,
+    handleToolPresetChange, handleChatAccessRebuilt, handleThinkingLevelChange, handleSetDefaultModel, handleSetDefaultThinkingLevel, loadSlashCommands, ensureSessionForEnhance, scrollUserMsgToTop,
     loadContext, activeLeafId, scrollToBottom, scrollToMessage,
   } = useAgentSession({
     session, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd: wrappedOnAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, onSideSession,
@@ -349,6 +350,19 @@ export function ChatWindow({ session, workspaceKind, searchTarget, onSearchTarge
     }
     void chatAccess?.setUnlocked(nextUnlocked);
   }, [addNotice, chatAccess, sessionBusy, t]);
+
+  // The composer's enhance button: a side request against the session. A
+  // brand-new session has no id until its runtime is created, so the handler
+  // resolves one on demand (ensure_session — no message, no run); the button
+  // itself shows whenever there is a cwd a session could start in.
+  const promptEnhance = usePromptEnhance();
+  const enhanceDraft = promptEnhance.enhance;
+  const canEnhancePrompt = Boolean(session?.id ?? sessionIdRef.current ?? newSessionCwd);
+  const handleEnhancePrompt = useMemo(() => (
+    canEnhancePrompt
+      ? (draft: string) => enhanceDraft(ensureSessionForEnhance, draft)
+      : undefined
+  ), [canEnhancePrompt, enhanceDraft, ensureSessionForEnhance]);
   // The model asked for a shell this chat does not have: offer the permission right here.
   const chatNeedsShell = Boolean(
     chatAccess?.state.available && !chatAccess.state.unlocked && !sessionBusy && lastTurnHitChatShellBlock(messages),
@@ -1171,6 +1185,8 @@ export function ChatWindow({ session, workspaceKind, searchTarget, onSearchTarge
     <ChatInput
       ref={chatInputRef}
       onSend={handleSend}
+      onEnhancePrompt={handleEnhancePrompt}
+      onEnhanceCancel={promptEnhance.cancel}
       onClearDraft={cancelEdit}
       onAttachFiles={onAttachFiles}
       onAbort={handleAbort}

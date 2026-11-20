@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import { useTheme } from "@/hooks/useTheme";
+import { useThemePalette } from "@/hooks/useThemePalette";
 import { THEME_OPTIONS } from "@/lib/theme";
+import { PALETTE_OPTIONS } from "@/lib/theme-palettes";
 import { isTauriDesktop, openPathNative } from "@/lib/desktop-native";
 import { ConfigButton } from "./SettingsUi";
 import { ThemeIcon } from "./ThemeIcon";
@@ -12,6 +14,7 @@ import { FontSettings } from "./FontSettings";
 export function AppearanceSettings() {
   const { t } = useI18n();
   const { preference, setThemePreference } = useTheme();
+  const { palette, setPalette } = useThemePalette();
   const [customCssBusy, setCustomCssBusy] = useState(false);
   const [customCssError, setCustomCssError] = useState(false);
 
@@ -43,6 +46,19 @@ export function AppearanceSettings() {
                 <input type="radio" name="theme" value={option.id} checked={preference === option.id}
                   onChange={() => setThemePreference(option.id)} className="sr-only" />
                 <ThemeIcon preference={option.id} />
+                <span className="settings-theme-option-label">{t(option.label)}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="settings-appearance-mode-row settings-appearance-palette-row">
+          <h3 className="settings-general-heading">{t("settings.palette")}</h3>
+          <div role="radiogroup" aria-label={t("settings.palette")} className="settings-theme-options settings-palette-options">
+            {PALETTE_OPTIONS.map((option) => (
+              <label key={option.id} className="settings-theme-option settings-palette-option">
+                <input type="radio" name="palette" value={option.id} checked={palette === option.id}
+                  onChange={() => setPalette(option.id)} className="sr-only" />
+                <span aria-hidden="true" className="settings-palette-swatch" data-palette={option.id} />
                 <span className="settings-theme-option-label">{t(option.label)}</span>
               </label>
             ))}

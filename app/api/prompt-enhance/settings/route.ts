@@ -1,0 +1,33 @@
+import { NextResponse } from "next/server";
+import { hasJsonContentType, isApiRequestAllowed } from "@/lib/request-security";
+import {
+  readPromptEnhanceSettings,
+  validatePromptEnhancePatch,
+  writePromptEnhanceSettings,
+} from "@/lib/prompt-enhance-settings";
+
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  return NextResponse.json(readPromptEnhanceSettings());
+}
+
+export async function PUT(req: Request) {
+  if (!isApiRequestAllowed(req)) {
+    return NextResponse.json({ error: "Untrusted API request" }, { status: 403 });
+  }
+  if (!hasJsonContentType(req)) {
+    return NextResponse.json({ error: "Content-Type must be application/json" }, { status: 415 });
+  }
+  let patch;
+  try {
+    patch = validatePromptEnhancePatch(await req.json());
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 400 });
+  }
+  try {
+    return NextResponse.json(writePromptEnhanceSettings(patch));
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
+  }
+}

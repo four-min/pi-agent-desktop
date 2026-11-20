@@ -12,7 +12,8 @@ function fileContentBlock() {
   // sequence is panel close → inner row close (the older shapes are kept as
   // fallbacks for merge resilience; the layout itself is pinned by
   // AppShell.right-panel-row.test.mjs).
-  let end = source.indexOf("</>\n          )}\n      </div>\n        </div>", start);
+  let end = source.indexOf("</div>\n          )}\n      </div>\n      </div>", start);
+  if (end === -1) end = source.indexOf("</>\n          )}\n      </div>\n        </div>", start);
   if (end === -1) end = source.indexOf("</>\n          )}\n      </div>\n      </div>", start);
   if (end === -1) end = source.indexOf("</>\n          )}\n      </div>\n    </div>", start);
   assert.notEqual(start, -1, "file content comment not found");

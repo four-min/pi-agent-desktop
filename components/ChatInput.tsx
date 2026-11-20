@@ -61,6 +61,7 @@ import { ChatAccessRows } from "./ChatAccessRows";
 import type { ChatAccessControls } from "@/hooks/useChatAccess";
 import { ComposerProjectChip, getProjectLabel } from "./ComposerProjectChip";
 import { ComposerOutbox, type ComposerQueueAction } from "./ComposerOutbox";
+import { ComposerEnhanceButton } from "./ComposerEnhanceButton";
 import { useSessionMentionPalette } from "@/hooks/useSessionMentionPalette";
 
 
@@ -74,6 +75,13 @@ interface Props {
   /** Explicit user draft clearing also leaves history-edit mode; never called on send. */
   onClearDraft?: () => void;
   onSend: (message: string, images?: AttachedImage[]) => void;
+  /**
+   * The composer's enhance button: rewrite the draft with a model and resolve
+   * to the new text (or reject with a message). Absent hides the button.
+   */
+  onEnhancePrompt?: (draft: string) => Promise<string>;
+  /** Cancel the enhancement in flight; the draft stays as it was. */
+  onEnhanceCancel?: () => void;
   /** Files picked with "+": images and other files. Without it the picker takes images only. */
   onAttachFiles?: (files: File[]) => void;
   onAbort: () => void;
@@ -822,7 +830,7 @@ export function ModelScopeWarningBanner({
 }
 
 export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
-  onClearDraft, onSend, onAttachFiles, onAbort, onSteer, onSideChat, onFollowUp, isStreaming, model, isAutoModelSelection, modelNames, modelList, modelError, workspaceUnavailable, onRecheckWorkspace, modelScopeWarnings, onDismissModelScopeWarnings, onOpenModelsConfig, onModelChange, modelSwitching,
+  onClearDraft, onSend, onEnhancePrompt, onEnhanceCancel, onAttachFiles, onAbort, onSteer, onSideChat, onFollowUp, isStreaming, model, isAutoModelSelection, modelNames, modelList, modelError, workspaceUnavailable, onRecheckWorkspace, modelScopeWarnings, onDismissModelScopeWarnings, onOpenModelsConfig, onModelChange, modelSwitching,
   defaultModel, onSetDefaultModel,
   onCompact, onAbortCompaction, isCompacting, compactError, compactNotice, compactResult, summarizationRetry, toolPreset, onToolPresetChange,
   thinkingLevel, isAutoThinkingSelection = false, onThinkingLevelChange, availableThinkingLevels, thinkingLevelMap,
@@ -1289,6 +1297,12 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   }, []);
 
   const clearInput = useCallback(() => {
+    // A rewrite in flight must not land in the cleared draft.
+    enhanceGenerationRef.current += 1;
+    enhancePendingRef.current = false;
+    setEnhancePending(false);
+    setEnhanceError(null);
+    onEnhanceCancelRef.current?.();
     valueRef.current = "";
     setValue("");
     setAtQuery(null);
@@ -1710,6 +1724,76 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     clearInput();
     onSideChat(msg);
   }, [value, attachedImages, onSideChat, clearInput]);
+
+  // ── Prompt enhancement ───────────────────────────────────────────────────
+  // One side request rewrites the draft. The result lands only while the draft
+  // is unchanged (and still this composer's), so typing, clearing or switching
+  // chats mid-flight keeps the user's text; the rewrite is then discarded.
+  const [enhancePending, setEnhancePending] = useState(false);
+  const [enhanceError, setEnhanceError] = useState<string | null>(null);
+  const enhancePendingRef = useRef(false);
+  const enhanceGenerationRef = useRef(0);
+  const onEnhanceCancelRef = useRef(onEnhanceCancel);
+  onEnhanceCancelRef.current = onEnhanceCancel;
+  useEffect(() => () => {
+    enhanceGenerationRef.current += 1;
+    enhancePendingRef.current = false;
+    onEnhanceCancelRef.current?.();
+  }, [draftKey]);
+
+  const handleEnhance = useCallback(async () => {
+    if (!onEnhancePrompt || enhancePendingRef.current) return;
+    const draft = valueRef.current.trim();
+    if (!draft) return;
+    enhancePendingRef.current = true;
+    const generation = enhanceGenerationRef.current;
+    const startedDraftKey = draftKeyRef.current;
+    setEnhancePending(true);
+    setEnhanceError(null);
+    try {
+      const enhanced = await onEnhancePrompt(draft);
+      if (generation !== enhanceGenerationRef.current || draftKeyRef.current !== startedDraftKey) return;
+      // The user edited while the model worked: their text wins.
+      if (valueRef.current.trim() !== draft) return;
+      const text = enhanced.trim();
+      if (!text) return;
+      valueRef.current = text;
+      setValue(text);
+      setAtQuery(null);
+      setHashQuery(null);
+      setHistoryMenuOpen(false);
+      requestAnimationFrame(() => {
+        const ta = textareaRef.current;
+        if (!ta) return;
+        ta.focus();
+        ta.setSelectionRange(text.length, text.length);
+        ta.style.height = "auto";
+        ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`;
+      });
+    } catch (error) {
+      if (generation !== enhanceGenerationRef.current || draftKeyRef.current !== startedDraftKey) return;
+      // Cancelled rewrites stay silent. The name check also covers an error
+      // whose class came from another realm (a vm in tests, an iframe).
+      const aborted = (error instanceof Error && error.name === "AbortError")
+        || String((error as { name?: unknown } | null)?.name ?? "") === "AbortError";
+      if (!aborted) setEnhanceError(error instanceof Error ? error.message : String(error));
+    } finally {
+      if (generation === enhanceGenerationRef.current) {
+        enhancePendingRef.current = false;
+        setEnhancePending(false);
+      }
+    }
+  }, [onEnhancePrompt, setHashQuery]);
+
+  const handleEnhanceCancel = useCallback(() => {
+    onEnhanceCancel?.();
+  }, [onEnhanceCancel]);
+
+  // Leaving the draft (clear, send, chat switch) drops a stale error and
+  // invalidates an enhancement still in flight.
+  useEffect(() => {
+    setEnhanceError(null);
+  }, [draftKey]);
 
   const sendQueued = useCallback(async (mode: "steer" | "followup") => {
     const msg = value.trim();
@@ -2496,6 +2580,15 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             </button>
           </div>
         )}
+        {enhanceError && (
+          <ModelNoticeBanner
+            tone="error"
+            title={t("chat.enhanceFailed")}
+            body={enhanceError}
+            onClose={() => setEnhanceError(null)}
+            dismissLabel={t("i18n.close")}
+          />
+        )}
 
         {/* Main input */}
         <div style={{ position: "relative", minWidth: 0 }}>
@@ -2985,6 +3078,14 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                 <path d="M21 12a8 8 0 0 1-8 8H5.5a2 2 0 0 1-1.4-3.4A8 8 0 1 1 21 12z" /><path d="M13 8.5v7M9.5 12h7" />
               </svg>
             </button>
+          )}
+          {!compact && onEnhancePrompt && (
+            <ComposerEnhanceButton
+              pending={enhancePending}
+              disabled={!value.trim()}
+              onEnhance={() => void handleEnhance()}
+              onCancel={handleEnhanceCancel}
+            />
           )}
           <button
             type="button"

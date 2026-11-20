@@ -56,7 +56,7 @@ test("chat composer and project picker cannot switch back into a project", () =>
 test("a chat with a folder shows that folder in the right panel, but never a terminal", () => {
   assert.match(source, /const chatFolderCwd = isChatWorkspaceActive && selectedSession\?\.chatFolder \? selectedSession\.cwd : null;/);
   assert.match(source, /const workbenchCwd = visibleProjectCwd \?\? chatFolderCwd;/);
-  assert.match(source, /\{workbenchCwd && fileTreeShown && \(/);
+  assert.match(source, /\{workbenchCwd && \(rightPanelOpen \|\| fileTreeShown\) && \(/);
   assert.match(source, /cwd=\{workbenchCwd\}\s*onOpenFile=\{handleOpenFile\}/);
   assert.match(source, /onNewTerminal=\{visibleProjectCwd \? \(\) => handleOpenTerminal\(visibleProjectCwd\) : undefined\}/);
   // The composer's @ completion is off in chats, so the panel offers no @mention either.

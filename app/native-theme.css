@@ -554,14 +554,13 @@
   z-index: 3;
 }
 .file-tree-panel {
-  width: var(--file-tree-width, 300px);
-  min-width: var(--file-tree-width, 300px);
-  flex: 0 0 var(--file-tree-width, 300px);
+  width: 100%;
+  min-width: 0;
+  flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  border-left: var(--hairline) solid var(--border);
 }
 
 /* Column resize handles between the three panes (desktop only).
@@ -9335,7 +9334,7 @@ html.native-desktop :is(
 .right-panel-body > .file-tree-panel {
   order: -2;
   border-left: none;
-  border-right: var(--hairline) solid var(--separator);
+  border-right: none;
 }
 .right-panel-body > .file-tree-resize-handle {
   order: -1;
@@ -10485,6 +10484,18 @@ html.dark .terminal-panel {
 .composer-side-chat-button:disabled { opacity: 0.45; cursor: not-allowed; }
 .composer-side-chat-button:disabled:hover { background: transparent; color: inherit; }
 
+/* Prompt enhancement: a draft-only sparkle beside Send; while the rewrite
+   runs it turns into the cancel control with a spinning arc. */
+.composer-enhance-button:disabled { opacity: 0.45; cursor: not-allowed; }
+.composer-enhance-button:disabled:hover { background: transparent; color: inherit; }
+.composer-enhance-button[data-pending] { color: var(--accent); }
+.composer-enhance-button[data-pending]:hover { background: var(--bg-hover); color: var(--accent); }
+.composer-enhance-spinner { animation: composer-enhance-spin 0.9s linear infinite; }
+@keyframes composer-enhance-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .composer-enhance-spinner { animation: none; }
+}
+
 /* C1: a side chat in a right-panel tab fills the panel like the main chat its column. */
 .session-chat-panel {
   position: relative;
@@ -11457,3 +11468,149 @@ html.dark .artifacts-thumb[data-tone="data"] { --tone: #4fc1d6; }
 .plugin-discovery-actions a { color: var(--text-muted); }
 .plugin-discovery-error { color: var(--text); font-size: 12px; overflow-wrap: anywhere; }
 @container (max-width: 520px) { .plugin-discovery-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* ==========================================================================
+   Built-in colour themes (主题) — <html data-palette="…">.
+
+   A palette is a layer over the light/dark mode, not a replacement: the mode
+   keeps owning `data-theme` / `.dark` (and the native window theme), the
+   palette only repaints the same semantic tokens. The registry is
+   lib/theme-palettes.ts; hooks/useThemePalette.ts sets the attribute and
+   lib/theme-palettes.ts restores it before first paint. "default" has no
+   attribute, so the base palette above shows through untouched.
+
+   These blocks sit at the end of the file so they win over every earlier
+   palette rule (`:root`, `html.dark`, the `@supports (color: AccentColor)`
+   system-accent block). Keep new palettes here, one section per palette,
+   light block then `html.dark` block, and touch colour tokens only.
+   ========================================================================== */
+
+/* ---- Claude -------------------------------------------------------------
+   Claude Desktop's warm terracotta look, after Nwflower/dsh-claude-style
+   (MIT). Seeds per scheme: accent #d97757; canvas #ffffff / #191919;
+   ink #161616 / #fdfdfd; sidebar #fafafa / #1f1f1f; bubble #f4f2f3 /
+   white 6%. Warm neutrals throughout — never pure black, never a cold gray.
+   Ink steps follow the source's tone ladder, lifted where needed to keep
+   this fork's contrast floors (labels 4.5:1, dim 3:1).
+
+   Deliberate brand deviation, like the source itself: the terracotta accent
+   is a brand fill (~3:1 with its white label, as on Claude's own buttons),
+   not this fork's neutral 4.5:1 action pair. The neutral text tokens keep
+   the floors on every surface; e2e/palettes.mjs checks the palette contract,
+   not the neutral action-contrast rule of e2e/themes.mjs. */
+:root[data-palette="claude"] {
+  --bg: #fafafa;
+  --bg-panel: #fafafa;
+  --bg-hover: rgba(6, 6, 6, 0.05);
+  --bg-selected: rgba(6, 6, 6, 0.08);
+  --sidebar-selected: rgba(6, 6, 6, 0.08);
+  --border: #e0dfdd;
+  --separator: rgba(22, 22, 22, 0.08);
+  --surface: #ffffff;
+  --workbench-bg: #ffffff;
+  --surface-muted: rgba(255, 255, 255, 0.64);
+  --surface-elevated: #ffffff;
+  --text: #161616;
+  --text-muted: #6b6466;
+  --text-dim: #857d80;
+  --text-meta: #6b6466;
+  --accent: #d97757;
+  --accent-hover: #c46343;
+  --accent-contrast: #ffffff;
+  --accent-soft: #f6ded7;
+  --accent-border: rgba(217, 119, 87, 0.35);
+  --menu-selection-color: #d97757;
+  --focus-ring: rgba(217, 119, 87, 0.55);
+  --selection: rgba(217, 119, 87, 0.26);
+  --user-bg: #f4f2f3;
+  --tool-bg: rgba(6, 6, 6, 0.04);
+  --bg-subtle: rgba(6, 6, 6, 0.04);
+  --scroll-thumb: rgba(22, 22, 22, 0.22);
+  --code-accent: #184f95;
+  --code-warm: #b0562f;
+  --code-comment: #8d8588;
+}
+
+/* The Claude card owns its accent: the system AccentColor must not repaint
+   the selection/switch blue over the terracotta. Same specificity as the
+   @supports block above; this one comes later and wins. */
+:root[data-palette="claude"],
+html.dark[data-palette="claude"] {
+  --menu-selection-color: #d97757;
+  --focus-ring: rgba(217, 119, 87, 0.55);
+  --selection: rgba(217, 119, 87, 0.26);
+}
+
+html.dark[data-palette="claude"] {
+  --bg: #1f1f1f;
+  --bg-panel: #1f1f1f;
+  --bg-hover: rgba(255, 255, 255, 0.06);
+  --bg-selected: rgba(255, 255, 255, 0.10);
+  --sidebar-selected: rgba(255, 255, 255, 0.10);
+  --border: rgba(255, 255, 255, 0.14);
+  --separator: rgba(255, 255, 255, 0.09);
+  --surface: #242424;
+  --workbench-bg: #191919;
+  --surface-muted: rgba(40, 40, 40, 0.72);
+  --surface-elevated: #282828;
+  --text: #fdfdfd;
+  --text-muted: #beb6b8;
+  --text-dim: #9c9395;
+  --text-meta: #beb6b8;
+  --accent: #d97757;
+  --accent-hover: #eb9170;
+  --accent-contrast: #ffffff;
+  --accent-soft: #48261b;
+  --accent-border: rgba(217, 119, 87, 0.45);
+  --user-bg: #2c2c2c;
+  --tool-bg: rgba(255, 255, 255, 0.06);
+  --bg-subtle: rgba(255, 255, 255, 0.06);
+  --scroll-thumb: rgba(255, 255, 255, 0.24);
+  --code-accent: #8ab4f8;
+  --code-warm: #eaa088;
+  --code-comment: #9c9395;
+}
+
+/* The chat canvas is its own surface: white in light, the card's #191919 in
+   dark, while the sidebar and window chrome keep the sidebar tone. */
+html.dark[data-palette="claude"] { --canvas-background: #191919; }
+
+/* The filled primary action keeps a readable label on the terracotta in both
+   schemes (the base hover rule forces white; #ffffff on #eb9170 would not
+   read). Mirrors the source card's dark accent-hover pair. */
+html[data-palette="claude"] .native-button-primary:hover:not(:disabled) {
+  color: var(--accent-contrast) !important;
+}
+
+/* ---- Palette picker (Settings › Appearance) ------------------------------
+   Same segmented control as the colour-mode row; each option carries a small
+   canvas+accent swatch instead of the mode icons. Swatch colours are fixed
+   per palette (a preview of the palette, not a paint of the current one). */
+.settings-appearance-palette-row { margin-top: 12px; }
+.settings-appearance .settings-palette-option { gap: 7px; }
+.settings-palette-swatch {
+  position: relative;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--swatch-canvas, #ffffff);
+}
+.settings-palette-swatch::after {
+  content: "";
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--swatch-accent, #1d1d1f);
+}
+.settings-palette-swatch[data-palette="default"] { --swatch-canvas: #f0f0f1; --swatch-accent: #1d1d1f; }
+.settings-palette-swatch[data-palette="claude"] { --swatch-canvas: #fafafa; --swatch-accent: #d97757; }
+html.dark .settings-palette-swatch[data-palette="default"] { --swatch-canvas: #19191a; --swatch-accent: #ececec; }
+html.dark .settings-palette-swatch[data-palette="claude"] { --swatch-canvas: #1f1f1f; }
+@media (max-width: 640px) {
+  .settings-appearance .settings-palette-option .settings-palette-swatch { display: none; }
+}

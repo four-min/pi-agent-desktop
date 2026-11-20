@@ -90,7 +90,6 @@ import {
   getDefaultRightPanelWidth,
   getRightPanelMaxWidth,
   getSidebarMaxWidth,
-  MOBILE_MAX_WIDTH,
   RIGHT_PANEL_FALLBACK_WIDTH,
   RIGHT_PANEL_MAX_WIDTH,
   RIGHT_PANEL_MIN_WIDTH,
@@ -128,15 +127,7 @@ type AutoNameStatus =
   | { kind: "naming" }
   | { kind: "success" }
   | { kind: "error"; message: string };
-const FILE_TREE_DEFAULT_WIDTH = 300;
 const AGENT_PANEL_WIDTH = 420;
-const FILE_TREE_MIN_WIDTH = 220;
-const FILE_TREE_MAX_WIDTH = 520;
-const FILE_TREE_PREVIEW_MIN_WIDTH = 240;
-// Below this panel width the tree steps aside while a file or terminal is
-// shown: the viewer's toolbar (path, mode switch, actions) needs ~320px, and a
-// 220px tree beside it left the preview clipped.
-const FILE_TREE_AUTO_COLLAPSE_WIDTH = FILE_TREE_MIN_WIDTH + 320;
 
 function parkedNewSessionDraftKey(cwd: string): string {
   return `parked-new:${cwd}`;
@@ -216,24 +207,9 @@ export function AppShell() {
   pageOpenRef.current = pageOpen;
   const [explorerUploadBusy, setExplorerUploadBusy] = useState(false);
   const fileExplorerRef = useRef<FileExplorerHandle>(null);
-  // The panel is a preview surface; keep the file index hidden until asked for.
+  // Track whether the file list was opened explicitly so closing the last tab returns to it.
   const [fileTreeOpen, setFileTreeOpen] = useState(false);
-  // Measured width of the panel body; drives the narrow-panel auto-collapse.
-  const [panelBodyWidth, setPanelBodyWidth] = useState(0);
-  const panelBodyObserverRef = useRef<ResizeObserver | null>(null);
-  const panelBodyRef = useCallback((node: HTMLDivElement | null) => {
-    panelBodyObserverRef.current?.disconnect();
-    panelBodyObserverRef.current = null;
-    if (!node || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(([entry]) => {
-      setPanelBodyWidth(Math.round(entry.contentRect.width));
-    });
-    observer.observe(node);
-    panelBodyObserverRef.current = observer;
-  }, []);
-  // The user reopened the tree while the panel is narrow; cleared whenever the
-  // panel crosses the threshold, so widening and narrowing again re-collapses.
-  const [fileTreeNarrowOverride, setFileTreeNarrowOverride] = useState(false);
+  const lastViewerTabIdRef = useRef<string | null>(null);
   const [fileExplorerQuery, setFileExplorerQuery] = useState("");
   const [changesCount, setChangesCount] = useState(0);
   const [changesCollapsed, setChangesCollapsed] = useState(true);
@@ -347,7 +323,6 @@ export function AppShell() {
   const windowDrag = useWindowDrag();
   const sidebarWidthRef = useRef(SIDEBAR_DEFAULT_WIDTH);
   const rightPanelWidthRef = useRef(RIGHT_PANEL_FALLBACK_WIDTH);
-  const fileTreeWidthRef = useRef(FILE_TREE_DEFAULT_WIDTH);
   const getResponsiveRightPanelWidth = useCallback(
     () => typeof window === "undefined"
       ? RIGHT_PANEL_FALLBACK_WIDTH
@@ -397,40 +372,8 @@ export function AppShell() {
     storageKey: "pi-right-panel-width",
     widthRef: rightPanelWidthRef,
   });
-  const getFileTreeMaxWidth = useCallback(
-    () => {
-      const availablePanelWidth = typeof window === "undefined"
-        ? rightPanelWidthRef.current
-        : window.innerWidth < MOBILE_MAX_WIDTH
-          ? window.innerWidth
-          : window.innerWidth < SPLIT_PANEL_MIN_WIDTH
-            ? Math.min(560, window.innerWidth - 48)
-            : rightPanelWidthRef.current;
-      return Math.max(
-        FILE_TREE_MIN_WIDTH,
-        Math.min(
-          FILE_TREE_MAX_WIDTH,
-          availablePanelWidth - FILE_TREE_PREVIEW_MIN_WIDTH,
-        ),
-      );
-    },
-    [],
-  );
-  const fileTreeResizer = useResizablePanel({
-    ariaLabel: translate("layout.resizeFileTree"),
-    cssVariable: "--file-tree-width",
-    defaultWidth: FILE_TREE_DEFAULT_WIDTH,
-    getMaxWidth: getFileTreeMaxWidth,
-    // The tree sits at the panel's left edge (CSS order), so it grows rightward.
-    growthDirection: "right",
-    maxWidth: FILE_TREE_MAX_WIDTH,
-    minWidth: FILE_TREE_MIN_WIDTH,
-    storageKey: "pi-file-tree-width",
-    widthRef: fileTreeWidthRef,
-  });
   const reclampSidebarWidth = sidebarResizer.reclampWidth;
   const reclampRightPanelWidth = rightPanelResizer.reclampWidth;
-  const reclampFileTreeWidth = fileTreeResizer.reclampWidth;
   const rightPanelWidth = rightPanelResizer.width;
   // On mobile the sidebar is an overlay drawer; hide it by default so the chat
   // is visible on load. Runs once the breakpoint resolves after hydration.
@@ -466,8 +409,7 @@ export function AppShell() {
     if (!rightPanelOpen) return;
     reclampSidebarWidth();
     reclampRightPanelWidth();
-    reclampFileTreeWidth();
-  }, [reclampFileTreeWidth, reclampRightPanelWidth, reclampSidebarWidth, rightPanelOpen, rightPanelWidth]);
+  }, [reclampRightPanelWidth, reclampSidebarWidth, rightPanelOpen, rightPanelWidth]);
   const chatInputRef = useRef<ChatInputHandle | null>(null);
   const [pendingQuotePrompt, setPendingQuotePrompt] = useState<{ sessionId: string; text: string } | null>(null);
   const topBarRef = useRef<HTMLDivElement>(null);
@@ -1757,7 +1699,9 @@ export function AppShell() {
     const remaining = terminalTabs.filter((item) => item.id !== tab.id);
     setTerminalTabs((tabs) => tabs.flatMap((item) => item.id !== tab.id ? [item] : replacement ? [replacement] : []));
     setActiveFileTabId((current) => current !== tab.id ? current : replacement?.id ?? remaining.at(-1)?.id ?? fileTabs.at(-1)?.id ?? null);
-    if (!replacement && !remaining.length && !fileTabs.length && !artifactTabs.length) setRightPanelOpen(false);
+    if (!replacement && !remaining.length && !fileTabs.length && !artifactTabs.length && !visibleSideTabs.length && !(workbenchCwd && fileTreeOpen)) {
+      setRightPanelOpen(false);
+    }
   };
 
   const handleCloseFileTab = useCallback((tabId: string) => {
@@ -1766,14 +1710,14 @@ export function AppShell() {
       const remaining = visibleSideTabs.filter((tab) => tab.sessionId !== sessionId);
       setSideTabs((tabs) => tabs.filter((tab) => tab.sessionId !== sessionId));
       setActiveFileTabId((cur) => cur !== tabId ? cur : fileTabs.at(-1)?.id ?? terminalTabs.at(-1)?.id ?? artifactTabs.at(-1)?.id ?? (remaining.at(-1) ? `agent:${remaining.at(-1)!.sessionId}` : null));
-      if (!remaining.length && !fileTabs.length && !terminalTabs.length && !artifactTabs.length) setRightPanelOpen(false);
+      if (!remaining.length && !fileTabs.length && !terminalTabs.length && !artifactTabs.length && !(workbenchCwd && fileTreeOpen)) setRightPanelOpen(false);
       return;
     }
     if (artifactTabs.some((tab) => tab.id === tabId)) {
       const remaining = artifactTabs.filter((tab) => tab.id !== tabId);
       setArtifactTabs(remaining);
       setActiveFileTabId((cur) => cur !== tabId ? cur : remaining.at(-1)?.id ?? fileTabs.at(-1)?.id ?? terminalTabs.at(-1)?.id ?? null);
-      if (!remaining.length && !fileTabs.length && !terminalTabs.length && !visibleSideTabs.length) setRightPanelOpen(false);
+      if (!remaining.length && !fileTabs.length && !terminalTabs.length && !visibleSideTabs.length && !(workbenchCwd && fileTreeOpen)) setRightPanelOpen(false);
       return;
     }
     if (terminalTabs.some((tab) => tab.id === tabId)) {
@@ -1782,7 +1726,7 @@ export function AppShell() {
     }
     setFileTabs((prev) => {
       const next = prev.filter((t) => t.id !== tabId);
-      if (next.length === 0 && terminalTabs.length === 0 && artifactTabs.length === 0 && visibleSideTabs.length === 0) setRightPanelOpen(false);
+      if (next.length === 0 && terminalTabs.length === 0 && artifactTabs.length === 0 && visibleSideTabs.length === 0 && !(workbenchCwd && fileTreeOpen)) setRightPanelOpen(false);
       return next;
     });
     setActiveFileTabId((cur) => {
@@ -1790,7 +1734,7 @@ export function AppShell() {
       const remaining = fileTabs.filter((t) => t.id !== tabId);
       return remaining.at(-1)?.id ?? terminalTabs.at(-1)?.id ?? artifactTabs.at(-1)?.id ?? null;
     });
-  }, [fileTabs, terminalTabs, artifactTabs, visibleSideTabs]);
+  }, [fileTabs, terminalTabs, artifactTabs, visibleSideTabs, workbenchCwd, fileTreeOpen]);
 
   // --- C1: side chats in right-panel tabs ---
   // Restored once from this browser tab, then written back on every change.
@@ -1999,25 +1943,18 @@ export function AppShell() {
   }, [projectTrustCwd]);
 
   const activeFileTab = fileTabs.find((tab) => tab.id === activeFileTabId) ?? null;
-  // A narrow panel collapses the tree only while something is being viewed;
-  // with nothing open the tree is the panel's whole content. The preference
-  // (fileTreeOpen) is untouched, so a wider panel brings the tree back.
-  const fileTreeNarrow = panelBodyWidth > 0 && panelBodyWidth < FILE_TREE_AUTO_COLLAPSE_WIDTH;
-  const [fileTreeNarrowSeen, setFileTreeNarrowSeen] = useState(fileTreeNarrow);
-  if (fileTreeNarrowSeen !== fileTreeNarrow) {
-    setFileTreeNarrowSeen(fileTreeNarrow);
-    setFileTreeNarrowOverride(false);
-  }
   const panelHasViewer = Boolean(activeFileTabId && panelTabs.some((tab) => tab.id === activeFileTabId));
-  const fileTreeAutoCollapsed = fileTreeNarrow && panelHasViewer && !fileTreeNarrowOverride;
-  const fileTreeShown = fileTreeOpen && !fileTreeAutoCollapsed;
+  const fileTreeShown = Boolean(workbenchCwd) && !panelHasViewer;
   const handleFileTreeToggle = () => {
-    if (fileTreeShown) {
-      setFileTreeOpen(false);
-      setFileTreeNarrowOverride(false);
-    } else {
+    if (panelHasViewer) {
+      lastViewerTabIdRef.current = activeFileTabId;
       setFileTreeOpen(true);
-      if (fileTreeAutoCollapsed) setFileTreeNarrowOverride(true);
+      setActiveFileTabId(null);
+    } else if (panelTabs.length > 0) {
+      const targetId = lastViewerTabIdRef.current && panelTabs.some((tab) => tab.id === lastViewerTabIdRef.current)
+        ? lastViewerTabIdRef.current
+        : panelTabs.at(-1)!.id;
+      setActiveFileTabId(targetId);
     }
   };
   const activeCwdName = visibleProjectCwd ? getFileName(visibleProjectCwd) || visibleProjectCwd : null;
@@ -3338,8 +3275,8 @@ export function AppShell() {
         </div>
 
         {/* Only the active viewer is mounted. Lightweight per-tab state is restored on activation. */}
-        <div ref={panelBodyRef} className="right-panel-body" style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden", paddingBottom: "env(safe-area-inset-bottom)" }}>
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div className="right-panel-body" style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden", paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <div style={{ flex: 1, minWidth: 0, display: fileTreeShown ? "none" : "flex", flexDirection: "column", overflow: "hidden" }}>
           {activeSideTab ? (
             <div className="session-chat-panel" key={activeSideTab.sessionId}>
               <SessionChatPanel
@@ -3395,15 +3332,9 @@ export function AppShell() {
                 { sourceSessionId: activeFileTab.sourceSessionId, page },
               )}
             />
-          ) : !terminalTabs.some((tab) => tab.id === activeFileTabId) ? (
+          ) : !terminalTabs.some((tab) => tab.id === activeFileTabId) && !workbenchCwd ? (
             <div className="right-panel-empty">
               <span>{translate("files.noneOpen")}</span>
-              {/* The file list starts hidden; offer it where the panel is empty. */}
-              {workbenchCwd && !fileTreeShown && (
-                <button type="button" className="right-panel-empty-action" onClick={handleFileTreeToggle}>
-                  {translate("contextPanel.showFileList")}
-                </button>
-              )}
             </div>
           ) : null}
           {terminalTabs.map((tab) => (
@@ -3419,21 +3350,12 @@ export function AppShell() {
           ))}
         </div>
       
-        {/* Explorer column — always-on project file tree */}
-          {workbenchCwd && fileTreeShown && (
-            <>
+        {/* Explorer column — kept mounted while the panel is open so switching to/from file tabs preserves expanded folders and scroll */}
+          {workbenchCwd && (rightPanelOpen || fileTreeShown) && (
               <div
-                {...fileTreeResizer.separatorProps}
-                aria-controls="file-tree-panel"
-                className={`panel-resize-handle file-tree-resize-handle${fileTreeResizer.isResizing ? " is-resizing" : ""}`}
-                data-resize-handle="file-tree"
-                title={`${translate("layout.resizeFileTree")}: ${translate("layout.resizeHint")}`}
-              />
-              <div
-                ref={fileTreeResizer.panelRef}
                 id="file-tree-panel"
                 className="file-tree-panel"
-                style={{ "--file-tree-width": `${fileTreeResizer.width}px` } as React.CSSProperties}
+                style={{ display: fileTreeShown ? "flex" : "none" }}
               >
               <div className="context-panel-files-toolbar">
                 <div className="context-panel-file-filter-wrap">
@@ -3503,7 +3425,6 @@ export function AppShell() {
                 />
               </div>
               </div>
-            </>
           )}
       </div>
       </div>

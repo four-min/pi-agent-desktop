@@ -111,6 +111,8 @@ app/api/
   desktop/save/route.ts           POST copy a file to, or write bytes at, a natively-picked path
   artifacts/settings/route.ts     GET/PUT the "artifacts in the side panel" prompt switch
   session-title/settings/route.ts GET/PUT the "name sessions automatically" switch
+  prompt-enhance/settings/route.ts GET/PUT the composer's prompt-enhancement model (unset = conversation's model)
+  agent/[id]/enhance-prompt/route.ts POST { draft } — one side request rewriting the composer draft
   artifacts/route.ts              GET ?q= artifacts across all sessions (Artifacts page)
   artifacts/item/route.ts         GET ?session=&identifier= one artifact with every version
   artifacts/file/route.ts         GET ?path= one written/edited file's calls | ?session=&toolCallId= a write's content

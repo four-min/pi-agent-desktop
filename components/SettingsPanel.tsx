@@ -38,6 +38,7 @@ import { DesktopAppSection } from "./desktop";
 import { McpConfig } from "./McpConfig";
 import { ConfigButton, ConfigDetailNavigationContext, ConfigSwitch, type ConfigDetailNavigation } from "./SettingsUi";
 import { ArtifactsSettingRow, AutoTitleSettingRow } from "./ArtifactsSettingRow";
+import { PromptEnhanceSettingRow } from "./PromptEnhanceSettingRow";
 import { RemoteAccessSection } from "./RemoteAccessSection";
 import { RelaySection } from "./RelaySection";
 import { NetworkProxySection } from "./NetworkProxySection";
@@ -295,6 +296,7 @@ function GeneralSettings({
               </div>
               <ArtifactsSettingRow />
               <AutoTitleSettingRow />
+              <PromptEnhanceSettingRow />
               <div className="settings-chat-option settings-chat-switch-option" role="radiogroup" aria-label={t("settings.enterSendMode")}>
                 <span>{t("settings.enterSendMode")}</span>
                 <div className="settings-send-mode-options">

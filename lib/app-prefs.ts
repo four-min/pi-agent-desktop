@@ -7,6 +7,8 @@
 
 export const APP_PREF_KEYS = {
   theme: "pi-theme",
+  /** Built-in colour theme layered over the light/dark mode (lib/theme-palettes.ts). */
+  palette: "pi-palette",
   fonts: "pi-fonts",
   locale: "pi-locale",
   soundEnabled: "pi-sound-enabled",

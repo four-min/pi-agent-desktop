@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { copyText } from "@/lib/clipboard";
 import { isDarkTheme, isThemePreference, type ResolvedTheme } from "@/lib/theme";
+import { isThemePalette, PALETTE_STORAGE_KEY, applyThemePalette, DEFAULT_PALETTE } from "@/lib/theme-palettes";
 
 /**
  * Same resolution as THEME_INIT_SCRIPT. Needed because an error during
@@ -20,6 +21,11 @@ function applyStoredTheme() {
   const root = document.documentElement;
   root.dataset.theme = resolved;
   root.classList.toggle("dark", isDarkTheme(resolved));
+  let palette: string | null = null;
+  try {
+    palette = localStorage.getItem(PALETTE_STORAGE_KEY);
+  } catch {}
+  applyThemePalette(isThemePalette(palette) ? palette : DEFAULT_PALETTE);
 }
 
 function describeError(error: Error & { digest?: string }): string {

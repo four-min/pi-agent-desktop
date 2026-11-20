@@ -74,6 +74,8 @@ import { SIDE_SESSION_NAME, sideChatNameFrom } from "./session-family";
 import { createSubagentController, getLiveSubagentStatus, hasUnsettledSubagentRun } from "./subagent-runtime";
 import { isBuiltInSubagentsEnabled } from "./subagent-settings";
 import { generateSessionTitle } from "./session-title";
+import { enhancePrompt } from "./prompt-enhance";
+import { readPromptEnhanceSettings } from "./prompt-enhance-settings";
 import { isAutoTitleEnabled } from "./session-title-settings";
 import { resolveShellTools } from "./powershell-settings";
 import { CHAT_ONLY_RESOURCE_LOADER_OPTIONS, contextFilesSystemPrompt } from "./chat-only";
@@ -1278,6 +1280,27 @@ export class AgentSessionWrapper {
     });
     await previous;
     return release;
+  }
+
+  /**
+   * The composer's prompt-enhance button: one side request through this
+   * session's runtime, exactly like the auto title. It never touches the
+   * transcript, the tools or the run — only auth and the model catalog are
+   * shared, so it works while a run streams and on a session not yet started.
+   */
+  async enhancePromptDraft(draft: string): Promise<{ text: string }> {
+    this.resetIdleTimer();
+    const runtime = this.inner.modelRuntime as unknown as Parameters<typeof enhancePrompt>[0];
+    const configured = readPromptEnhanceSettings().model;
+    const current = this.inner.model;
+    const requested = configured ?? (current ? { provider: current.provider, modelId: current.id } : null);
+    const model = requested
+      ? (this.inner.modelRuntime.getModel(requested.provider, requested.modelId) ?? this.inner.model)
+      : this.inner.model;
+    if (!model) throw new Error("No model is available for prompt enhancement");
+    const text = await enhancePrompt(runtime, model as unknown as Parameters<typeof enhancePrompt>[1], draft);
+    this.resetIdleTimer();
+    return { text };
   }
 
   private resetIdleTimer(): void {
