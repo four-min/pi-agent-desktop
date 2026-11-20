@@ -7,19 +7,30 @@ import { vs } from "react-syntax-highlighter/dist/esm/styles/prism";
 // a CSS change and the highlighter never re-renders for it.
 type Style = Record<string, string | number>;
 
-const TEXT = "var(--text)";
-const MUTED = "var(--text-muted)";
-const ACCENT = "var(--code-accent)";
-const WARM = "var(--code-warm)";
+const TEXT = "var(--code-fg, var(--text))";
+const PUNCTUATION = "var(--code-punctuation, var(--text-muted))";
+const KEYWORD = "var(--code-keyword, var(--code-accent))";
+const CONSTANT = "var(--code-constant, var(--code-warm))";
+const STRING = "var(--code-string, var(--code-warm))";
 const COMMENT = "var(--code-comment)";
+const PARAMETER = "var(--code-parameter, var(--code-accent))";
+const FUNCTION = "var(--code-function, var(--code-accent))";
+const LINK = "var(--code-link, var(--code-warm))";
+const INSERTED = "var(--diff-added, var(--code-warm))";
+const DELETED = "var(--diff-removed, var(--danger))";
 
 const GROUPS: Array<[RegExp, string, Style?]> = [
   [/(^|\.)(comment|prolog|doctype|cdata)(\W|$)/, COMMENT],
-  [/(^|\.)(punctuation|operator|namespace)(\W|$)/, MUTED],
+  [/(^|\.)(punctuation|operator|namespace)(\W|$)/, PUNCTUATION],
   [/(^|\.)(important|bold)(\W|$)/, TEXT, { fontWeight: "bold" }],
-  [/(^|\.)(keyword|atrule|tag|selector|builtin|directive|function|class-name)(\W|$)/, ACCENT],
-  [/(^|\.)(string|attr-value|url|regex|inserted|char|number|boolean|constant|symbol)(\W|$)/, WARM],
-  [/(^|\.)deleted(\W|$)/, "var(--danger)"],
+  [/(^|\.)inserted(\W|$)/, INSERTED],
+  [/(^|\.)deleted(\W|$)/, DELETED],
+  [/(^|\.)function(\W|$)/, FUNCTION],
+  [/(^|\.)url(\W|$)/, LINK],
+  [/(^|\.)(parameter|property|attr-name|class-name|builtin)(\W|$)/, PARAMETER],
+  [/(^|\.)(keyword|atrule|tag|selector|directive)(\W|$)/, KEYWORD],
+  [/(^|\.)(constant|number|boolean|symbol)(\W|$)/, CONSTANT],
+  [/(^|\.)(string|string-expression|attr-value|regex|char)(\W|$)/, STRING],
 ];
 
 function recolour(key: string, base: Style): Style {

@@ -18,6 +18,7 @@ import { useReportDesktopReady } from "./desktop";
 import { MarkdownBody } from "./MarkdownBody";
 import { ChatInput, type ChatInputHandle } from "./ChatInput";
 import { NewSessionWelcome } from "./NewSessionWelcome";
+import { NewSessionRippleBackground } from "./NewSessionRippleBackground";
 import { ConversationNavigator, type ConversationTurnLocation } from "./ConversationNavigator";
 import { ExtensionWidgets } from "./ExtensionWidgets";
 import { ExtensionStatusLine, formatExtensionStatusLine } from "./ExtensionStatusLine";
@@ -958,6 +959,7 @@ export function ChatWindow({ session, workspaceKind, searchTarget, onSearchTarge
   const inputHistory = useMemo(() => buildComposerHistory(messages), [messages]);
 
   const isEmptyNew = isNew && !loading && !error && messages.length === 0 && !streamState.isStreaming && !sessionBusy;
+  const showNewSessionBackground = isEmptyNew && !panel;
   useScrollbarVisibility(scrollContainerRef, Boolean(session?.id) || !isEmptyNew);
 
   // The message scrollport always shows its (usually invisible) scrollbar track,
@@ -1280,6 +1282,7 @@ export function ChatWindow({ session, workspaceKind, searchTarget, onSearchTarge
   return (
     <div
       className="chat-window chat-content relative flex h-full min-w-0 flex-col overflow-hidden"
+      data-new-session={showNewSessionBackground ? "true" : undefined}
       data-session-busy={sessionBusy ? "true" : undefined}
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       onDragEnter={handleDragEnter}
@@ -1287,6 +1290,7 @@ export function ChatWindow({ session, workspaceKind, searchTarget, onSearchTarge
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      {showNewSessionBackground && <NewSessionRippleBackground />}
       {/* Search owns only rendered transcript text. Reveal the local window on
           open, but keep server history paging explicit and reuse loadContext's
           session/request guards. A leaf switch is a new search scope too. */}

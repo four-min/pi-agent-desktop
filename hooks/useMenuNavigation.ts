@@ -23,7 +23,7 @@ export function useMenuNavigation(
     ));
     const buttons = items();
     const selected = buttons.find((button) => button.getAttribute("aria-selected") === "true" || button.getAttribute("aria-checked") === "true");
-    (selected ?? buttons[0])?.focus({ preventScroll: true });
+    (selected ?? buttons[0] ?? panel.querySelector<HTMLElement>('[role="slider"]'))?.focus({ preventScroll: true });
     const onKeyDown = (event: KeyboardEvent) => {
       if (isImeComposing(event)) return;
       const keys = ["ArrowDown", "ArrowUp", "Home", "End"];

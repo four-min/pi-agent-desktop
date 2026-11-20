@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_Mono } from "next/font/google";
 import { PwaRegistration } from "@/components/PwaRegistration";
+import { ThemeBootCurtain } from "@/components/ThemeBootCurtain";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import { PALETTE_INIT_SCRIPT } from "@/lib/theme-palettes";
 import { FONT_INIT_SCRIPT } from "@/lib/font-preferences";
@@ -96,6 +97,7 @@ export default function RootLayout({
       </head>
       <body translate="no" className="notranslate" suppressHydrationWarning>
         {children}
+        <ThemeBootCurtain />
         <PwaRegistration />
       </body>
     </html>

@@ -44,6 +44,7 @@ import { useChatAppearance } from "@/hooks/useChatAppearance";
 import type { ToolPreset } from "@/lib/tool-presets";
 import { SelectorRow } from "./SelectorRow";
 import { ModelSelector } from "./ModelSelector";
+import { ReasoningEffortSlider } from "./ReasoningEffortSlider";
 import {
   composeMessageWithAttachedFiles,
   createPastedTextAttachment,
@@ -62,6 +63,7 @@ import type { ChatAccessControls } from "@/hooks/useChatAccess";
 import { ComposerProjectChip, getProjectLabel } from "./ComposerProjectChip";
 import { ComposerOutbox, type ComposerQueueAction } from "./ComposerOutbox";
 import { ComposerEnhanceButton } from "./ComposerEnhanceButton";
+import { ComposerMascot } from "./ComposerMascot";
 import { useSessionMentionPalette } from "@/hooks/useSessionMentionPalette";
 
 
@@ -2954,6 +2956,16 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             // run that will take this message as a steer / follow-up.
             data-state={compact ? undefined : bashMode ? "bash" : undefined}
           >
+          {!compact && (
+            <ComposerMascot
+              isStreaming={isStreaming}
+              isCompacting={isCompacting}
+              branchSummaryPending={branchSummaryPending}
+              errorMessage={modelError ?? compactError ?? retryInfo?.errorMessage ?? null}
+              completionKey={compactResultText}
+              activityToken={value}
+            />
+          )}
           <div
             className="chat-composer-editor"
             style={{
@@ -3153,6 +3165,49 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                 isAutoSelection={isAutoModelSelection}
                 defaultValue={defaultModel}
                 onSetDefault={onSetDefaultModel}
+                footer={onThinkingLevelChange ? (
+                  <ReasoningEffortSlider
+                    heading={t("chat.reasoningHeading")}
+                    levels={THINKING_LEVELS.filter((lvl) => {
+                      if (!availableThinkingLevels) return true;
+                      if (lvl === "auto") return true;
+                      return availableThinkingLevels.includes(lvl);
+                    }).map((lvl) => {
+                      const isActive = lvl === "auto"
+                        ? isAutoThinkingSelection
+                        : !isAutoThinkingSelection && resolvedThinkingLevel === lvl;
+                      const mappedVal = (lvl !== "auto" && thinkingLevelMap) ? thinkingLevelMap[lvl] : undefined;
+                      const displayLabel = (mappedVal != null && mappedVal !== lvl) ? mappedVal : lvl;
+                      const showOriginal = mappedVal != null && mappedVal !== lvl;
+                      return {
+                        level: lvl,
+                        displayLabel,
+                        showOriginal,
+                        description: t(THINKING_LEVEL_DESC_KEYS[lvl]),
+                        active: isActive,
+                        star: onSetDefaultThinkingLevel && lvl !== "auto"
+                          ? {
+                              isDefault: savedDefaultThinkingLevel === lvl,
+                              saveLabel: t("chat.saveDefaultThinking"),
+                              defaultLabel: t("chat.defaultThinking"),
+                              onSave: () => onSetDefaultThinkingLevel(lvl),
+                            }
+                          : undefined,
+                      };
+                    })}
+                    onSelectLevel={(nextLevel) => {
+                      const lvl = nextLevel as typeof THINKING_LEVELS[number];
+                      const isActive = lvl === "auto"
+                        ? isAutoThinkingSelection
+                        : !isAutoThinkingSelection && resolvedThinkingLevel === lvl;
+                      if (lvl === "auto") {
+                        if (!isAutoThinkingSelection) onThinkingLevelChange("auto");
+                        return;
+                      }
+                      if (!isActive || isAutoThinkingSelection) onThinkingLevelChange(lvl);
+                    }}
+                  />
+                ) : undefined}
               />
             )}
             {/* A virtual model routes each request; show where the latest response went, like pi's footer. */}
@@ -3275,10 +3330,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                     maxHeight: maxH, display: "flex", flexDirection: "column",
                   }}>
                     <div className="app-menu-list">
-                    {onThinkingLevelChange && (
-                      <>
-                      <div className="composer-menu-heading">{t("chat.reasoningHeading")}</div>
-                      {THINKING_LEVELS.filter((lvl) => {
+                    {onThinkingLevelChange && (() => {
+                      const sliderLevels = THINKING_LEVELS.filter((lvl) => {
                         if (!availableThinkingLevels) return true;
                         if (lvl === "auto") return true;
                         return availableThinkingLevels.includes(lvl);
@@ -3290,40 +3343,54 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                         const mappedVal = (lvl !== "auto" && thinkingLevelMap) ? thinkingLevelMap[lvl] : undefined;
                         const displayLabel = (mappedVal != null && mappedVal !== lvl) ? mappedVal : lvl;
                         const showOriginal = mappedVal != null && mappedVal !== lvl;
-                        return (
-                          <SelectorRow
-                            key={lvl}
-                            active={isActive}
-                            onSelect={() => {
-                              setThinkingDropdownOpen(false);
-                              if (lvl === "auto") {
-                                if (!isAutoThinkingSelection) onThinkingLevelChange("auto");
-                                return;
+                        return {
+                          level: lvl,
+                          displayLabel,
+                          showOriginal,
+                          description: desc,
+                          active: isActive,
+                          star: onSetDefaultThinkingLevel && lvl !== "auto"
+                            ? {
+                                isDefault: savedDefaultThinkingLevel === lvl,
+                                saveLabel: t("chat.saveDefaultThinking"),
+                                defaultLabel: t("chat.defaultThinking"),
+                                onSave: () => {
+                                  onSetDefaultThinkingLevel(lvl);
+                                },
                               }
-                              if (!isActive || isAutoThinkingSelection) onThinkingLevelChange(lvl);
-                            }}
-                            gutter={Boolean(onSetDefaultThinkingLevel)}
-                            star={onSetDefaultThinkingLevel && lvl !== "auto"
-                              ? {
-                                  isDefault: savedDefaultThinkingLevel === lvl,
-                                  saveLabel: t("chat.saveDefaultThinking"),
-                                  defaultLabel: t("chat.defaultThinking"),
-                                  onSave: () => {
-                                    onSetDefaultThinkingLevel(lvl);
-                                  },
-                                }
-                              : undefined}
-                          >
-                            <span style={{ flex: 1 }}>
-                              {displayLabel}
-                              {showOriginal && <span style={{ fontSize: "var(--fs-micro)", color: "var(--text-dim)", fontFamily: "var(--font-mono)", marginLeft: 5 }}>({lvl})</span>}
-                            </span>
-                            <span style={{ fontSize: "var(--fs-micro)", color: "var(--text-dim)", marginLeft: 8 }}>{desc}</span>
-                          </SelectorRow>
-                        );
-                      })}
-                      </>
-                    )}
+                            : undefined,
+                        };
+                      });
+                      const lvl = (isAutoThinkingSelection ? "auto" : resolvedThinkingLevel) as typeof THINKING_LEVELS[number];
+                      return (
+                        <ReasoningEffortSlider
+                          heading={t("chat.reasoningHeading")}
+                          levels={sliderLevels}
+                          star={onSetDefaultThinkingLevel && lvl !== "auto"
+                            ? {
+                                isDefault: savedDefaultThinkingLevel === lvl,
+                                saveLabel: t("chat.saveDefaultThinking"),
+                                defaultLabel: t("chat.defaultThinking"),
+                                onSave: () => {
+                                  onSetDefaultThinkingLevel(lvl);
+                                },
+                              }
+                            : undefined}
+                          onSelectLevel={(nextLevel) => {
+                            const selectedLvl = nextLevel as typeof THINKING_LEVELS[number];
+                            const isActive = selectedLvl === "auto"
+                              ? isAutoThinkingSelection
+                              : !isAutoThinkingSelection && resolvedThinkingLevel === selectedLvl;
+                            const lvl = selectedLvl;
+                            if (lvl === "auto") {
+                              if (!isAutoThinkingSelection) onThinkingLevelChange("auto");
+                              return;
+                            }
+                            if (!isActive || isAutoThinkingSelection) onThinkingLevelChange(lvl);
+                          }}
+                        />
+                      );
+                    })()}
 
                     {chatOnly && (
                       <>

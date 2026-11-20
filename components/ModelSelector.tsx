@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { isImeComposing } from "@/lib/ime";
@@ -31,10 +31,80 @@ interface ModelSelectorProps {
   defaultValue?: { provider: string; modelId: string } | null;
   /** Shows a star on every row that saves it as the default. */
   onSetDefault?: (provider: string, modelId: string) => void;
+  /** Optional footer control rendered inside the model menu popup (e.g. reasoning effort slider). */
+  footer?: ReactNode;
 }
 
 const MODEL_FILTER_THRESHOLD = 8;
 const MODEL_OPTION_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+const MODEL_POPUP_ANCHOR_OFFSET = 6;
+const MODEL_POPUP_BOUNDARY_GAP = 8;
+
+export function getModelSelectorTopBoundary(element: HTMLElement | null): number {
+  if (!element || typeof window === "undefined") return 0;
+  let visibleTop = window.visualViewport?.offsetTop ?? 0;
+
+  for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+    const overflowY = window.getComputedStyle(parent).overflowY;
+    if (overflowY === "auto" || overflowY === "scroll" || overflowY === "hidden" || overflowY === "clip") {
+      visibleTop = Math.max(visibleTop, parent.getBoundingClientRect().top + (parent.clientTop ?? 0));
+    }
+  }
+
+  if (typeof document !== "undefined") {
+    const rect = element.getBoundingClientRect();
+    for (const topbar of document.querySelectorAll<HTMLElement>(".app-topbar")) {
+      const topbarRect = topbar.getBoundingClientRect();
+      const overlapsHorizontally = rect.left < topbarRect.right && rect.right > topbarRect.left;
+      const sitsAbove = topbarRect.bottom <= rect.bottom;
+      if (overlapsHorizontally && sitsAbove) {
+        visibleTop = Math.max(visibleTop, topbarRect.bottom + (topbar.clientTop ?? 0));
+      }
+    }
+  }
+
+  return visibleTop;
+}
+
+export function computeModelSelectorPopupLayout({
+  anchorRect,
+  viewportHeight,
+  visibleTop = 0,
+  placement = "up",
+}: {
+  anchorRect: { top: number; bottom: number };
+  viewportHeight: number;
+  visibleTop?: number;
+  placement?: "up" | "auto";
+}): {
+  openAbove: boolean;
+  spaceAbove: number;
+  spaceBelow: number;
+  maxHeight: number;
+  verticalPosition: { bottom: number } | { top: number };
+} {
+  const menuBottomIfAbove = anchorRect.top - MODEL_POPUP_ANCHOR_OFFSET;
+  const menuTopIfBelow = anchorRect.bottom + MODEL_POPUP_ANCHOR_OFFSET;
+  const spaceAbove = Math.max(0, Math.floor(menuBottomIfAbove - visibleTop - MODEL_POPUP_BOUNDARY_GAP));
+  const spaceBelow = Math.max(0, Math.floor(viewportHeight - menuTopIfBelow - MODEL_POPUP_BOUNDARY_GAP));
+  const openAbove = placement === "up"
+    ? (spaceAbove >= 160 || spaceAbove >= spaceBelow)
+    : spaceAbove > spaceBelow;
+  const availableSpace = openAbove ? spaceAbove : spaceBelow;
+  const viewportCap = Math.max(120, Math.floor(viewportHeight * 0.6));
+  const maxHeight = Math.max(0, Math.min(availableSpace, viewportCap));
+  const verticalPosition = openAbove
+    ? { bottom: viewportHeight - anchorRect.top + MODEL_POPUP_ANCHOR_OFFSET }
+    : { top: anchorRect.bottom + MODEL_POPUP_ANCHOR_OFFSET };
+
+  return {
+    openAbove,
+    spaceAbove,
+    spaceBelow,
+    maxHeight,
+    verticalPosition,
+  };
+}
 
 function compareModelOptions(a: ModelSelectorOption, b: ModelSelectorOption): number {
   return MODEL_OPTION_COLLATOR.compare(a.name || a.modelId, b.name || b.modelId)
@@ -69,15 +139,68 @@ export function ModelSelector({
   placement = "up",
   defaultValue,
   onSetDefault,
+  footer,
 }: ModelSelectorProps) {
   const { t } = useI18n();
   const isMobile = useIsMobile();
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const [anchorRect, setAnchorRect] = useState<{ top: number; right: number; bottom: number; left: number; width: number } | null>(null);
+  const [anchorRect, setAnchorRect] = useState<{ top: number; right: number; bottom: number; left: number; width: number; visibleTop: number } | null>(null);
   const [filter, setFilter] = useState("");
   const locked = disabled || busy;
+
+  const updateAnchorMetrics = useCallback(() => {
+    const root = rootRef.current;
+    const button = root?.querySelector<HTMLButtonElement>("button");
+    const target = button ?? root;
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    const visibleTop = getModelSelectorTopBoundary(target);
+    setAnchorRect((prev) => {
+      if (
+        prev
+        && prev.top === rect.top
+        && prev.right === rect.right
+        && prev.bottom === rect.bottom
+        && prev.left === rect.left
+        && prev.width === rect.width
+        && prev.visibleTop === visibleTop
+      ) {
+        return prev;
+      }
+      return {
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        left: rect.left,
+        width: rect.width,
+        visibleTop,
+      };
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    updateAnchorMetrics();
+    const viewport = window.visualViewport;
+    viewport?.addEventListener("resize", updateAnchorMetrics);
+    viewport?.addEventListener("scroll", updateAnchorMetrics);
+    window.addEventListener("resize", updateAnchorMetrics);
+    window.addEventListener("scroll", updateAnchorMetrics, true);
+    const parent = rootRef.current?.parentElement;
+    const layoutObserver = typeof ResizeObserver === "undefined" || !parent
+      ? null
+      : new ResizeObserver(updateAnchorMetrics);
+    if (parent) layoutObserver?.observe(parent);
+    return () => {
+      layoutObserver?.disconnect();
+      viewport?.removeEventListener("resize", updateAnchorMetrics);
+      viewport?.removeEventListener("scroll", updateAnchorMetrics);
+      window.removeEventListener("resize", updateAnchorMetrics);
+      window.removeEventListener("scroll", updateAnchorMetrics, true);
+    };
+  }, [open, updateAnchorMetrics]);
   const sortedOptions = useMemo(() => [...options].sort(compareModelOptions), [options]);
   const filteredOptions = filterModelOptions(sortedOptions, filter);
   const showFilter = sortedOptions.length > MODEL_FILTER_THRESHOLD;
@@ -190,7 +313,8 @@ export function ModelSelector({
         style={buttonStyle}
         onClick={(event) => {
           const rect = event.currentTarget.getBoundingClientRect();
-          setAnchorRect({ top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left, width: rect.width });
+          const visibleTop = getModelSelectorTopBoundary(event.currentTarget);
+          setAnchorRect({ top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left, width: rect.width, visibleTop });
           setOpen((current) => {
             if (current) setFilter("");
             return !current;
@@ -236,13 +360,12 @@ export function ModelSelector({
       {open && anchorRect && (() => {
         const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
         const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
-        const spaceAbove = anchorRect.top - 8;
-        const spaceBelow = viewportHeight - anchorRect.bottom - 8;
-        const openAbove = placement === "up" || spaceAbove > spaceBelow;
-        const maxHeight = Math.max(120, Math.min(openAbove ? spaceAbove : spaceBelow, viewportHeight * 0.6));
-        const verticalPosition = openAbove
-          ? { bottom: viewportHeight - anchorRect.top + 6 }
-          : { top: anchorRect.bottom + 6 };
+        const { maxHeight, verticalPosition } = computeModelSelectorPopupLayout({
+          anchorRect,
+          viewportHeight,
+          visibleTop: anchorRect.visibleTop,
+          placement,
+        });
         const horizontalPosition: CSSProperties = isMobile
           ? { left: 8, right: 8, maxWidth: "calc(100vw - 16px)" }
           : { left: anchorRect.left, width: "max-content", minWidth: anchorRect.width, maxWidth: Math.max(anchorRect.width, viewportWidth - anchorRect.left - 8) };
@@ -297,7 +420,7 @@ export function ModelSelector({
                 />
               </div>
             )}
-            <div className="app-menu-list">
+            <div className="app-menu-list" style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto" }}>
               {onClear && !filter.trim() && (
                 <SelectorRow active={!value} gutter={Boolean(onSetDefault)} onSelect={() => {
                   setOpen(false);
@@ -338,6 +461,11 @@ export function ModelSelector({
                 </div>
               ))}
             </div>
+            {footer && (
+              <div className="model-selector-footer">
+                {footer}
+              </div>
+            )}
           </div>
         );
       })()}

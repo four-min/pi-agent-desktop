@@ -1450,14 +1450,14 @@ function DiffGapRow({ count, spanBoth }: { count: number | null; spanBoth?: bool
 function UnifiedDiffLine({ cell }: { cell: SplitDiffCell }) {
   const bg =
     cell.type === "added"
-      ? "rgba(34,197,94,0.12)"
+      ? "var(--diff-added-bg, rgba(34,197,94,0.12))"
       : cell.type === "removed"
-      ? "rgba(248,113,113,0.13)"
+      ? "var(--diff-removed-bg, rgba(248,113,113,0.13))"
       : "transparent";
   const marker =
     cell.type === "added" ? "+" : cell.type === "removed" ? "-" : " ";
   const markerColor =
-    cell.type === "added" ? "var(--success)" : cell.type === "removed" ? "var(--danger)" : "var(--text-dim)";
+    cell.type === "added" ? "var(--diff-added, var(--success))" : cell.type === "removed" ? "var(--diff-removed, var(--danger))" : "var(--text-dim)";
 
   return (
     <div style={{ display: "flex", minWidth: 0, background: bg }}>
@@ -1524,16 +1524,16 @@ function SplitDiffHeader({ title, side }: { title: string; side: "left" | "right
 function SplitDiffCellView({ cell, side }: { cell: SplitDiffCell; side: "left" | "right" }) {
   const bg =
     cell.type === "added"
-      ? "rgba(34,197,94,0.12)"
+      ? "var(--diff-added-bg, rgba(34,197,94,0.12))"
       : cell.type === "removed"
-      ? "rgba(248,113,113,0.13)"
+      ? "var(--diff-removed-bg, rgba(248,113,113,0.13))"
       : cell.type === "empty"
       ? "var(--bg-subtle)"
       : "transparent";
   const marker =
     cell.type === "added" ? "+" : cell.type === "removed" ? "-" : " ";
   const markerColor =
-    cell.type === "added" ? "var(--success)" : cell.type === "removed" ? "var(--danger)" : "var(--text-dim)";
+    cell.type === "added" ? "var(--diff-added, var(--success))" : cell.type === "removed" ? "var(--diff-removed, var(--danger))" : "var(--text-dim)";
 
   return (
     <div
@@ -1598,13 +1598,13 @@ function PatchTextView({ text }: { text: string }) {
           line.startsWith("-") && !line.startsWith("---") ? "removed" :
           "context";
         const bg =
-          kind === "added" ? "rgba(34,197,94,0.12)" :
-          kind === "removed" ? "rgba(248,113,113,0.13)" :
+          kind === "added" ? "var(--diff-added-bg, rgba(34,197,94,0.12))" :
+          kind === "removed" ? "var(--diff-removed-bg, rgba(248,113,113,0.13))" :
           kind === "hunk" ? "rgba(96,165,250,0.12)" :
           "transparent";
         const color =
-          kind === "added" ? "var(--success)" :
-          kind === "removed" ? "var(--danger)" :
+          kind === "added" ? "var(--diff-added, var(--success))" :
+          kind === "removed" ? "var(--diff-removed, var(--danger))" :
           kind === "hunk" ? "var(--accent)" :
           "var(--text)";
 
@@ -1615,9 +1615,9 @@ function PatchTextView({ text }: { text: string }) {
               display: "flex",
               background: bg,
               borderLeft: kind === "added"
-                ? "3px solid var(--success)"
+                ? "3px solid var(--diff-added, var(--success))"
                 : kind === "removed"
-                ? "3px solid var(--danger)"
+                ? "3px solid var(--diff-removed, var(--danger))"
                 : kind === "hunk"
                 ? "3px solid var(--accent)"
                 : "3px solid transparent",

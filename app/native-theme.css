@@ -9916,6 +9916,13 @@ html.native-desktop :is(
   color: var(--text-dim);
   font-size: var(--fs-small);
 }
+
+.settings-prompt-enhance-prompt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
 /* Preserve the fork composer geometry after upstream layout and Send changes. */
 .native-primary-button.composer-send-button {
   flex: 0 0 var(--composer-send-size);
@@ -10597,6 +10604,38 @@ html.dark .terminal-panel {
 @media (max-width: 640px) {
   .new-session-welcome-title { font-size: 22px; }
   .new-session-welcome-subtitle { font-size: var(--fs-body); }
+}
+
+/* 新会话页水波纹字符背景: 仅作用域于 isEmptyNew && !panel 对应的容器. */
+.chat-window[data-new-session="true"] {
+  isolation: isolate;
+}
+
+.new-session-ripple-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  color: var(--text-dim);
+}
+
+.new-session-ripple-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  color: var(--menu-selection-color, var(--accent));
+}
+
+.chat-window[data-new-session="true"] .chat-input-shell {
+  background: transparent !important;
+}
+
+.chat-window[data-new-session="true"] .new-session-welcome {
+  position: relative;
+  text-shadow: 0 0 18px var(--bg), 0 0 8px var(--bg);
 }
 
 .message-meta { cursor: default; }
@@ -11486,49 +11525,69 @@ html.dark .artifacts-thumb[data-tone="data"] { --tone: #4fc1d6; }
    ========================================================================== */
 
 /* ---- Claude -------------------------------------------------------------
-   Claude Desktop's warm terracotta look, after Nwflower/dsh-claude-style
-   (MIT). Seeds per scheme: accent #d97757; canvas #ffffff / #191919;
-   ink #161616 / #fdfdfd; sidebar #fafafa / #1f1f1f; bubble #f4f2f3 /
-   white 6%. Warm neutrals throughout — never pure black, never a cold gray.
-   Ink steps follow the source's tone ladder, lifted where needed to keep
-   this fork's contrast floors (labels 4.5:1, dim 3:1).
-
-   Deliberate brand deviation, like the source itself: the terracotta accent
-   is a brand fill (~3:1 with its white label, as on Claude's own buttons),
-   not this fork's neutral 4.5:1 action pair. The neutral text tokens keep
-   the floors on every surface; e2e/palettes.mjs checks the palette contract,
-   not the neutral action-contrast rule of e2e/themes.mjs. */
+   Claude Code Desktop theme (warm beige #f5f3ee, ink #1d1b16, terracotta
+   orange #da7756, Absolutely syntax highlighting, diff #00c853 / #ff5f38).
+   Neutral text tokens keep contrast floors (labels 4.5:1, dim 3:1) on every
+   surface; terracotta #da7756 is the brand accent fill. */
 :root[data-palette="claude"] {
-  --bg: #fafafa;
-  --bg-panel: #fafafa;
-  --bg-hover: rgba(6, 6, 6, 0.05);
-  --bg-selected: rgba(6, 6, 6, 0.08);
-  --sidebar-selected: rgba(6, 6, 6, 0.08);
-  --border: #e0dfdd;
-  --separator: rgba(22, 22, 22, 0.08);
-  --surface: #ffffff;
-  --workbench-bg: #ffffff;
-  --surface-muted: rgba(255, 255, 255, 0.64);
-  --surface-elevated: #ffffff;
-  --text: #161616;
-  --text-muted: #6b6466;
-  --text-dim: #857d80;
-  --text-meta: #6b6466;
-  --accent: #d97757;
-  --accent-hover: #c46343;
+  --bg: #f5f3ee;
+  --bg-panel: #f5f3ee;
+  --canvas-background: #f5f3ee;
+  --bg-hover: rgba(29, 27, 22, 0.05);
+  --bg-selected: rgba(29, 27, 22, 0.09);
+  --sidebar-selected: rgba(29, 27, 22, 0.09);
+  --border: #e3ddd1;
+  --separator: rgba(29, 27, 22, 0.08);
+  --surface: #f5f3ee;
+  --workbench-bg: #f5f3ee;
+  --surface-muted: rgba(245, 243, 238, 0.72);
+  --surface-elevated: #fbf9f4;
+  --text: #1d1b16;
+  --text-muted: #635f56;
+  --text-dim: #7f7869;
+  --text-meta: #635f56;
+  --accent: #da7756;
+  --accent-hover: #c4633f;
   --accent-contrast: #ffffff;
-  --accent-soft: #f6ded7;
-  --accent-border: rgba(217, 119, 87, 0.35);
-  --menu-selection-color: #d97757;
-  --focus-ring: rgba(217, 119, 87, 0.55);
-  --selection: rgba(217, 119, 87, 0.26);
-  --user-bg: #f4f2f3;
-  --tool-bg: rgba(6, 6, 6, 0.04);
-  --bg-subtle: rgba(6, 6, 6, 0.04);
-  --scroll-thumb: rgba(22, 22, 22, 0.22);
-  --code-accent: #184f95;
-  --code-warm: #b0562f;
-  --code-comment: #8d8588;
+  --accent-soft: #f4e0d5;
+  --accent-border: rgba(218, 119, 86, 0.35);
+  --menu-selection-color: #da7756;
+  --focus-ring: rgba(218, 119, 86, 0.55);
+  --selection: rgba(218, 119, 86, 0.26);
+  --user-bg: #ece7dd;
+  --tool-bg: rgba(29, 27, 22, 0.04);
+  --bg-subtle: rgba(29, 27, 22, 0.04);
+  --scroll-thumb: rgba(29, 27, 22, 0.22);
+  --success: #00c853;
+  --danger: #ff5f38;
+  --diff-added: #00c853;
+  --diff-removed: #ff5f38;
+  --diff-added-bg: rgba(0, 200, 83, 0.12);
+  --diff-removed-bg: rgba(255, 95, 56, 0.12);
+  /* Syntax colors — the "Absolutely" code theme (light variant) */
+  --code-bg: #f9f9f7;
+  --code-fg: #2d2d2b;
+  --code-accent: #ff5f38;
+  --code-warm: #00c853;
+  --code-keyword: #ff5f38;
+  --code-constant: #ff5f38;
+  --code-string: #00c853;
+  --code-comment: #939391;
+  --code-parameter: #bc7559;
+  --code-function: #2d2d2b;
+  --code-punctuation: #6f6d68;
+  --code-link: #cc7d5e;
+  --shiki-foreground: #2d2d2b;
+  --shiki-background: #f9f9f7;
+  --shiki-token-constant: #ff5f38;
+  --shiki-token-string: #00c853;
+  --shiki-token-comment: #939391;
+  --shiki-token-keyword: #ff5f38;
+  --shiki-token-parameter: #bc7559;
+  --shiki-token-function: #2d2d2b;
+  --shiki-token-string-expression: #00c853;
+  --shiki-token-punctuation: #6f6d68;
+  --shiki-token-link: #cc7d5e;
 }
 
 /* The Claude card owns its accent: the system AccentColor must not repaint
@@ -11536,48 +11595,120 @@ html.dark .artifacts-thumb[data-tone="data"] { --tone: #4fc1d6; }
    @supports block above; this one comes later and wins. */
 :root[data-palette="claude"],
 html.dark[data-palette="claude"] {
-  --menu-selection-color: #d97757;
-  --focus-ring: rgba(217, 119, 87, 0.55);
-  --selection: rgba(217, 119, 87, 0.26);
+  --menu-selection-color: #da7756;
+  --focus-ring: rgba(218, 119, 86, 0.55);
+  --selection: rgba(218, 119, 86, 0.26);
 }
 
 html.dark[data-palette="claude"] {
-  --bg: #1f1f1f;
-  --bg-panel: #1f1f1f;
-  --bg-hover: rgba(255, 255, 255, 0.06);
-  --bg-selected: rgba(255, 255, 255, 0.10);
-  --sidebar-selected: rgba(255, 255, 255, 0.10);
-  --border: rgba(255, 255, 255, 0.14);
-  --separator: rgba(255, 255, 255, 0.09);
-  --surface: #242424;
-  --workbench-bg: #191919;
-  --surface-muted: rgba(40, 40, 40, 0.72);
-  --surface-elevated: #282828;
-  --text: #fdfdfd;
-  --text-muted: #beb6b8;
-  --text-dim: #9c9395;
-  --text-meta: #beb6b8;
-  --accent: #d97757;
-  --accent-hover: #eb9170;
+  --bg: #24221f;
+  --bg-panel: #24221f;
+  --canvas-background: #24221f;
+  --bg-hover: rgba(245, 243, 238, 0.08);
+  --bg-selected: rgba(245, 243, 238, 0.14);
+  --sidebar-selected: rgba(245, 243, 238, 0.14);
+  --border: rgba(245, 243, 238, 0.14);
+  --separator: rgba(245, 243, 238, 0.09);
+  --surface: #2b2825;
+  --workbench-bg: #24221f;
+  --surface-muted: rgba(43, 40, 37, 0.72);
+  --surface-elevated: #302d29;
+  --text: #f0ede4;
+  --text-muted: #bdb6a9;
+  --text-dim: #9a9285;
+  --text-meta: #bdb6a9;
+  --accent: #da7756;
+  --accent-hover: #e89a7e;
   --accent-contrast: #ffffff;
-  --accent-soft: #48261b;
-  --accent-border: rgba(217, 119, 87, 0.45);
-  --user-bg: #2c2c2c;
-  --tool-bg: rgba(255, 255, 255, 0.06);
-  --bg-subtle: rgba(255, 255, 255, 0.06);
-  --scroll-thumb: rgba(255, 255, 255, 0.24);
-  --code-accent: #8ab4f8;
-  --code-warm: #eaa088;
-  --code-comment: #9c9395;
+  --accent-soft: #4a352b;
+  --accent-border: rgba(218, 119, 86, 0.45);
+  --user-bg: #35322d;
+  --tool-bg: rgba(245, 243, 238, 0.06);
+  --bg-subtle: rgba(245, 243, 238, 0.06);
+  --scroll-thumb: rgba(245, 243, 238, 0.24);
+  --success: #00c853;
+  --danger: #ff5f38;
+  --diff-added: #00c853;
+  --diff-removed: #ff5f38;
+  --diff-added-bg: rgba(0, 200, 83, 0.15);
+  --diff-removed-bg: rgba(255, 95, 56, 0.15);
+  /* Syntax colors — the "Absolutely" code theme (dark variant) */
+  --code-bg: #2d2d2b;
+  --code-fg: #f9f9f7;
+  --code-accent: #ff5f38;
+  --code-warm: #00c853;
+  --code-keyword: #ff5f38;
+  --code-constant: #ff5f38;
+  --code-string: #00c853;
+  --code-comment: #b2b2b0;
+  --code-parameter: #d28e73;
+  --code-function: #f9f9f7;
+  --code-punctuation: #a8a6a2;
+  --code-link: #cc7d5e;
+  --shiki-foreground: #f9f9f7;
+  --shiki-background: #2d2d2b;
+  --shiki-token-constant: #ff5f38;
+  --shiki-token-string: #00c853;
+  --shiki-token-comment: #b2b2b0;
+  --shiki-token-keyword: #ff5f38;
+  --shiki-token-parameter: #d28e73;
+  --shiki-token-function: #f9f9f7;
+  --shiki-token-string-expression: #00c853;
+  --shiki-token-punctuation: #a8a6a2;
+  --shiki-token-link: #cc7d5e;
 }
 
-/* The chat canvas is its own surface: white in light, the card's #191919 in
-   dark, while the sidebar and window chrome keep the sidebar tone. */
-html.dark[data-palette="claude"] { --canvas-background: #191919; }
+/* Absolutely code highlighting CSS rules under Claude palette */
+html[data-palette="claude"] :is(pre, code)[class*="language-"] {
+  color: var(--code-fg);
+}
+html[data-palette="claude"] .token.comment,
+html[data-palette="claude"] .token.prolog,
+html[data-palette="claude"] .token.doctype,
+html[data-palette="claude"] .token.cdata {
+  color: var(--code-comment);
+}
+html[data-palette="claude"] .token.punctuation,
+html[data-palette="claude"] .token.operator {
+  color: var(--code-punctuation);
+}
+html[data-palette="claude"] .token.keyword,
+html[data-palette="claude"] .token.atrule,
+html[data-palette="claude"] .token.tag,
+html[data-palette="claude"] .token.constant,
+html[data-palette="claude"] .token.number,
+html[data-palette="claude"] .token.boolean,
+html[data-palette="claude"] .token.symbol {
+  color: var(--code-keyword);
+}
+html[data-palette="claude"] .token.string,
+html[data-palette="claude"] .token.char,
+html[data-palette="claude"] .token.attr-value,
+html[data-palette="claude"] .token.regex {
+  color: var(--code-string);
+}
+html[data-palette="claude"] .token.parameter,
+html[data-palette="claude"] .token.property,
+html[data-palette="claude"] .token.attr-name,
+html[data-palette="claude"] .token.class-name,
+html[data-palette="claude"] .token.builtin {
+  color: var(--code-parameter);
+}
+html[data-palette="claude"] .token.function {
+  color: var(--code-function);
+}
+html[data-palette="claude"] .token.url {
+  color: var(--code-link);
+}
+html[data-palette="claude"] .token.inserted {
+  color: var(--diff-added);
+}
+html[data-palette="claude"] .token.deleted {
+  color: var(--diff-removed);
+}
 
 /* The filled primary action keeps a readable label on the terracotta in both
-   schemes (the base hover rule forces white; #ffffff on #eb9170 would not
-   read). Mirrors the source card's dark accent-hover pair. */
+   schemes. */
 html[data-palette="claude"] .native-button-primary:hover:not(:disabled) {
   color: var(--accent-contrast) !important;
 }
@@ -11608,9 +11739,562 @@ html[data-palette="claude"] .native-button-primary:hover:not(:disabled) {
   background: var(--swatch-accent, #1d1d1f);
 }
 .settings-palette-swatch[data-palette="default"] { --swatch-canvas: #f0f0f1; --swatch-accent: #1d1d1f; }
-.settings-palette-swatch[data-palette="claude"] { --swatch-canvas: #fafafa; --swatch-accent: #d97757; }
+.settings-palette-swatch[data-palette="claude"] { --swatch-canvas: #f5f3ee; --swatch-accent: #da7756; }
 html.dark .settings-palette-swatch[data-palette="default"] { --swatch-canvas: #19191a; --swatch-accent: #ececec; }
-html.dark .settings-palette-swatch[data-palette="claude"] { --swatch-canvas: #1f1f1f; }
+html.dark .settings-palette-swatch[data-palette="claude"] { --swatch-canvas: #24221f; --swatch-accent: #da7756; }
 @media (max-width: 640px) {
   .settings-appearance .settings-palette-option .settings-palette-swatch { display: none; }
 }
+
+/* ---- Continuous Reasoning Effort Slider (.ces-*) -------------------------
+   Replaces discrete reasoning option rows with a draggable continuous slider.
+   At the highest tier (data-energy="1" / data-max="true"), lights up the
+   cream / terracotta orange energy layer with warm stardust and sweep light. */
+.model-selector-footer {
+  flex-shrink: 0;
+  border-top: var(--hairline) solid var(--separator);
+  padding: 2px 4px 4px;
+}
+
+.ces-row {
+  --ces-pct: 1;
+  --ces-energy: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px 10px;
+  border-radius: 10px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ces-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  line-height: 1.25;
+}
+
+.ces-label {
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-medium);
+  color: var(--text);
+}
+
+.ces-value-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ces-value {
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semibold);
+  color: var(--text-muted);
+  transition: color 140ms ease;
+}
+
+.ces-value[data-max="1"] {
+  color: #da7756;
+}
+
+html.dark .ces-value[data-max="1"] {
+  color: #e89a7e;
+}
+
+.ces-value-orig {
+  margin-left: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-regular);
+  color: var(--text-dim);
+}
+
+.ces-default-star {
+  position: static !important;
+  transform: none !important;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-dim);
+}
+
+.ces-default-star.is-default,
+.ces-default-star:hover {
+  color: #da7756;
+  background: transparent;
+}
+
+.ces-track {
+  position: relative;
+  height: 28px;
+  min-width: 196px;
+  border-radius: 999px;
+  background: rgba(29, 27, 22, 0.075);
+  box-shadow: inset 0 1px 2px rgba(29, 27, 22, 0.06);
+  cursor: pointer;
+  touch-action: none;
+  overflow: hidden;
+  outline: none;
+}
+
+html.dark .ces-track {
+  background: rgba(245, 243, 238, 0.09);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.ces-track:focus-visible {
+  box-shadow: 0 0 0 2px rgba(218, 119, 86, 0.55);
+}
+
+.ces-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(14px + var(--ces-pct) * (100% - 28px));
+  border-radius: 999px 0 0 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(218, 119, 86, 0.16) 0%,
+    rgba(218, 119, 86, 0.38) 100%
+  );
+  transition: width 140ms cubic-bezier(0.2, 0.85, 0.25, 1), opacity 180ms ease;
+  pointer-events: none;
+}
+
+html.dark .ces-fill {
+  background: linear-gradient(
+    90deg,
+    rgba(218, 119, 86, 0.22) 0%,
+    rgba(218, 119, 86, 0.48) 100%
+  );
+}
+
+.ces-energy {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(14px + var(--ces-pct) * (100% - 28px));
+  border-radius: 999px 0 0 999px;
+  background: linear-gradient(
+    90deg,
+    #8f5a44 0%,
+    #b05537 30%,
+    #da7756 62%,
+    #f5e6d8 100%
+  );
+  opacity: 0;
+  overflow: hidden;
+  transition: width 140ms cubic-bezier(0.2, 0.85, 0.25, 1), opacity 220ms ease;
+  pointer-events: none;
+}
+
+html.dark .ces-energy {
+  background: linear-gradient(
+    90deg,
+    #6e3d28 0%,
+    #984830 30%,
+    #da7756 62%,
+    #f0d8c4 100%
+  );
+}
+
+.ces-row[data-energy="1"] .ces-energy,
+.ces-energy[data-active="1"] {
+  opacity: 1;
+}
+
+.ces-energy__sweep {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 18%,
+    rgba(255, 253, 248, 0.36) 50%,
+    transparent 82%
+  );
+  transform: translateX(-100%);
+  animation: ces-sweep 2.4s linear infinite;
+  animation-play-state: paused;
+}
+
+.ces-row[data-energy="1"] .ces-energy__sweep {
+  animation-play-state: running;
+}
+
+@keyframes ces-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.ces-stars {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(14px + var(--ces-pct) * (100% - 28px));
+  border-radius: 999px 0 0 999px;
+  overflow: hidden;
+  opacity: 0;
+  transition: width 140ms cubic-bezier(0.2, 0.85, 0.25, 1), opacity 240ms ease;
+  pointer-events: none;
+}
+
+.ces-row[data-energy="1"] .ces-stars,
+.ces-stars[data-active="1"] {
+  opacity: 1;
+}
+
+.ces-star {
+  position: absolute;
+  right: -6px;
+  top: 0;
+  width: var(--s, 2px);
+  height: var(--s, 2px);
+  transform: translate3d(0, var(--ty, 14px), 0);
+  animation: ces-star-move var(--d, 2.6s) linear var(--delay, 0s) infinite;
+  animation-play-state: paused;
+  will-change: transform, opacity;
+}
+
+.ces-star__dot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: #fff9f2;
+  box-shadow: 0 0 4px 1px rgba(255, 232, 208, 0.92);
+  opacity: var(--o, 0.85);
+  animation: ces-star-twinkle var(--td, 1.4s) ease-in-out var(--delay, 0s) infinite alternate;
+  animation-play-state: paused;
+}
+
+.ces-row[data-energy="1"] .ces-star,
+.ces-row[data-energy="1"] .ces-star__dot {
+  animation-play-state: running;
+}
+
+@keyframes ces-star-move {
+  0% {
+    transform: translate3d(0, var(--ty, 14px), 0) scale(0.7);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(var(--tx, -220px), var(--ty, 14px), 0) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes ces-star-twinkle {
+  0% { transform: scale(0.75); opacity: 0.45; }
+  100% { transform: scale(1.2); opacity: 1; }
+}
+
+.ces-tick {
+  position: absolute;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(29, 27, 22, 0.25);
+  transform: translate(-50%, -50%);
+  transition: background-color 160ms ease, transform 160ms ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+html.dark .ces-tick {
+  background: rgba(245, 243, 238, 0.28);
+}
+
+.ces-tick[data-passed="1"] {
+  background: rgba(255, 249, 242, 0.85);
+}
+
+.ces-knob {
+  position: absolute;
+  top: 50%;
+  left: calc(14px + var(--ces-pct) * (100% - 28px));
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #fffdf9;
+  box-shadow:
+    0 1px 3px rgba(29, 27, 22, 0.24),
+    0 0 0 1px rgba(29, 27, 22, 0.08);
+  transform: translate(-50%, -50%);
+  transition:
+    left 140ms cubic-bezier(0.2, 0.85, 0.25, 1),
+    transform 120ms ease,
+    box-shadow 180ms ease;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.ces-knob[data-max="1"] {
+  box-shadow:
+    0 2px 8px rgba(218, 119, 86, 0.42),
+    0 0 0 1.5px rgba(218, 119, 86, 0.55);
+}
+
+.ces-row[data-dragging="1"] .ces-fill,
+.ces-row[data-dragging="1"] .ces-energy,
+.ces-row[data-dragging="1"] .ces-stars,
+.ces-row[data-dragging="1"] .ces-knob {
+  transition-duration: 0ms;
+}
+
+.ces-row[data-dragging="1"] .ces-knob {
+  transform: translate(-50%, -50%) scale(1.04);
+}
+
+.ces-desc {
+  font-size: var(--fs-micro);
+  color: var(--text-dim);
+  line-height: 1.35;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ces-fill,
+  .ces-energy,
+  .ces-stars,
+  .ces-knob {
+    transition: none !important;
+  }
+  .ces-energy__sweep,
+  .ces-star,
+  .ces-star__dot {
+    animation: none !important;
+  }
+}
+
+/* ---- First-Load Brand Boot Curtain (#dsh-boot-overlay) -------------------
+   Warm beige (#f5f3ee) curtain with terracotta orange logo (#da7756), "PI"
+   wordmark, and orange progress line. Fades out after ~1.7s, skippable via
+   click / Enter / Escape, static fade-out under prefers-reduced-motion. */
+#dsh-boot-overlay,
+.dsh-boot-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f5f3ee;
+  color: #1d1b16;
+  opacity: 1;
+  transition: opacity 0.26s ease;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: pointer;
+}
+
+html.dark #dsh-boot-overlay,
+html.dark .dsh-boot-overlay {
+  background: #24221f;
+  color: #ece7dd;
+}
+
+#dsh-boot-overlay[data-leaving="1"],
+.dsh-boot-overlay[data-leaving="1"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#dsh-boot-overlay .dsh-boot-mark {
+  width: 88px;
+  height: 88px;
+  opacity: 0;
+  filter: drop-shadow(0 18px 30px rgba(29, 27, 22, 0.16));
+}
+
+#dsh-boot-overlay .dsh-boot-mark-bg {
+  fill: #f5f3ee;
+}
+
+html.dark #dsh-boot-overlay .dsh-boot-mark-bg {
+  fill: #24221f;
+}
+
+#dsh-boot-overlay .dsh-boot-mark-spokes {
+  fill: #da7756;
+}
+
+#dsh-boot-overlay .dsh-boot-mark-core {
+  fill: #1d1b16;
+}
+
+html.dark #dsh-boot-overlay .dsh-boot-mark-core {
+  fill: #ece7dd;
+}
+
+#dsh-boot-overlay .dsh-boot-title {
+  margin-top: 22px;
+  font-size: 30px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: #1d1b16;
+  opacity: 0;
+}
+
+html.dark #dsh-boot-overlay .dsh-boot-title {
+  color: #ece7dd;
+}
+
+#dsh-boot-overlay .dsh-boot-line {
+  margin-top: 26px;
+  width: 92px;
+  height: 2px;
+  border-radius: 2px;
+  background: #da7756;
+  transform: scaleX(0);
+  transform-origin: center;
+}
+
+#dsh-boot-overlay[data-ready="1"] .dsh-boot-mark {
+  animation: dsh-boot-mark 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+#dsh-boot-overlay[data-ready="1"] .dsh-boot-title {
+  animation: dsh-boot-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.18s both;
+}
+
+#dsh-boot-overlay[data-ready="1"] .dsh-boot-line {
+  animation: dsh-boot-line 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.34s both;
+}
+
+#dsh-boot-overlay[data-leaving="1"] .dsh-boot-mark,
+#dsh-boot-overlay[data-leaving="1"] .dsh-boot-title,
+#dsh-boot-overlay[data-leaving="1"] .dsh-boot-line {
+  transition: opacity 0.2s ease;
+  opacity: 0;
+}
+
+@keyframes dsh-boot-mark {
+  from {
+    opacity: 0;
+    transform: scale(0.86) rotate(-16deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes dsh-boot-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes dsh-boot-line {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+#dsh-boot-overlay[data-reduced-motion="1"] .dsh-boot-mark,
+#dsh-boot-overlay[data-reduced-motion="1"] .dsh-boot-title,
+#dsh-boot-overlay[data-reduced-motion="1"] .dsh-boot-line {
+  opacity: 1;
+  animation: none !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #dsh-boot-overlay .dsh-boot-mark,
+  #dsh-boot-overlay .dsh-boot-title,
+  #dsh-boot-overlay .dsh-boot-line {
+    opacity: 1;
+    animation: none !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* ---- Composer Pixel Mascot ("像素小伙伴" Clawd 像素蟹) ----------------------
+   Ported from Nwflower/dsh-claude-style (mascot-frame.css & crab.css).
+   Drawn on a 52x36 logical pixel grid at 2px per cell (104x72px).
+   Feet sit on row 35 (bottom of the 72px container) aligned with the top
+   border edge of .chat-composer (`bottom: calc(100% + var(--composer-border-width, 1px))`).
+   Entire tree is `pointer-events: none` so it never intercepts focus/typing/click. */
+.chat-composer {
+  position: relative;
+}
+
+.composer-mascot,
+.dsh-claude-crab {
+  position: absolute;
+  right: var(--composer-mascot-right, 16px);
+  bottom: calc(100% + var(--composer-border-width, 1px));
+  z-index: 2;
+  width: 104px;
+  height: 72px;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  image-rendering: pixelated;
+}
+
+:is(.composer-mascot, .dsh-claude-crab):not([data-ready]) {
+  visibility: hidden;
+}
+
+.composer-mascot-sprite,
+.dsh-claude-crab-sprite {
+  position: absolute;
+  left: calc(var(--dsh-claude-mascot-x, 0) * 2px);
+  top: calc(var(--dsh-claude-mascot-y, 0) * 2px);
+  width: calc(var(--dsh-claude-mascot-w, 0) * 2px);
+  height: calc(var(--dsh-claude-mascot-h, 0) * 2px);
+  overflow: hidden;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+.composer-mascot-strip,
+.dsh-claude-crab-strip {
+  display: block;
+  position: relative;
+  width: calc(var(--dsh-claude-mascot-cell-w, 0) * var(--dsh-claude-mascot-columns, 8) * 2px);
+  height: calc(var(--dsh-claude-mascot-strip-h, 0) * 2px);
+  background-image: var(--dsh-claude-mascot-sheet, none);
+  background-repeat: no-repeat;
+  background-size: calc(var(--dsh-claude-mascot-cell-w, 0) * var(--dsh-claude-mascot-columns, 8) * 2px) auto;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.composer-mascot-strip::after,
+.dsh-claude-crab-strip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--dsw-alias-label-tertiary, var(--text-dim, #91888a));
+  -webkit-mask: var(--dsh-claude-crab-ink, none) no-repeat 0 0 / 100% 100%;
+  mask: var(--dsh-claude-crab-ink, none) no-repeat 0 0 / 100% 100%;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+

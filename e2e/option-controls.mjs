@@ -101,28 +101,13 @@ try{
   assert.ok(await page.locator(':focus').evaluate(el=>parseFloat(getComputedStyle(el).outlineWidth)>=2),'keyboard focus must remain visible');
   await page.keyboard.press('Escape');await tools.waitFor({state:'hidden'});
   const reasoning=page.getByRole('button',{name:'更改推理级别',exact:true});await reasoning.click();
-  const reasoningRows=page.getByRole('listbox').locator('.app-option-row');await assertRowGaps(reasoningRows,'actual reasoning');
-  await assertChoiceGeometry(page.getByRole('listbox'),reasoningRows,'actual reasoning');
-  await assertSelectionPill(page.getByRole('listbox').locator('.app-option-row[data-selected]'));
-  const saveDefault=page.getByRole('listbox').locator('.app-option-row > button:not([role])').first();
-  if(await saveDefault.count())assert.equal(await saveDefault.evaluate(el=>parseFloat(getComputedStyle(el).marginTop)),0,'default star must not get row spacing');
-  const low=reasoningRows.filter({has:page.getByRole('option',{name:/^low\b/})});
-  const star=low.locator('button.app-default-star');await star.hover();
-  // Read the settled hover state: popover buttons transition their background, so an
-  // immediate read races the first frame and can pass while the star still paints one.
-  await page.waitForTimeout(250);
-  const starStyle=await star.evaluate(el=>{const s=getComputedStyle(el);return {border:s.borderTopWidth,bg:s.backgroundColor,shadow:s.boxShadow};});
-  assert.equal(starStyle.border,'0px');assert.equal(starStyle.bg,'rgba(0, 0, 0, 0)');assert.equal(starStyle.shadow,'none');
-  await star.click();await low.locator('.app-default-star.is-default').waitFor();
-  assert.equal(await low.locator('[role="option"]').getAttribute('aria-selected'),'true','saved reasoning is applied through the existing callback');
-  // The star is reachable and usable from the keyboard: Right from a row, Enter to save, Left back.
-  const medium=reasoningRows.filter({has:page.getByRole('option',{name:/^medium\b/})});
-  await medium.getByRole('option').focus();await page.keyboard.press('ArrowRight');
-  await page.waitForFunction(()=>document.activeElement?.classList.contains('app-default-star'));
-  await page.keyboard.press('ArrowLeft');await page.waitForFunction(()=>document.activeElement?.getAttribute('role')==='option');
-  await page.keyboard.press('ArrowRight');await page.keyboard.press('Enter');
-  await medium.locator('.app-default-star.is-default').waitFor();
-  await page.waitForFunction(()=>document.activeElement?.getAttribute('role')==='option','keyboard focus stays in the menu after saving');
+  const slider=page.getByRole('listbox').getByRole('slider',{name:'推理等级'});await slider.waitFor();
+  await slider.focus();await page.keyboard.press('End');
+  await page.waitForFunction(()=>document.querySelector('.ces-row')?.getAttribute('data-energy')==='1');
+  const star=page.getByRole('listbox').locator('button.app-default-star');
+  if(await star.count()){
+   await star.click();await page.getByRole('listbox').locator('.app-default-star.is-default').waitFor();
+  }
   await page.getByRole('listbox').screenshot({path:`test-results/ui-send/selection-reasoning-${theme}-${width}.png`});
   await page.keyboard.press('Escape');
   await page.locator('textarea').click();

@@ -66,11 +66,14 @@ try {
     const style = getComputedStyle(root);
     return Object.fromEntries(ks.map((key) => [key, style.getPropertyValue(`--${key}`).trim()]));
   }, keys)).map(([k, v]) => [k, norm(v)]));
-  const light = await read(["bg", "workbench-bg", "accent", "accent-contrast", "user-bg", "text", "text-muted", "text-dim", "menu-selection-color"]);
-  assert.equal(light.accent, "#d97757");
-  assert.equal(light.bg, "#fafafa");
-  assert.equal(light["workbench-bg"], "#ffffff");
-  assert.equal(light["menu-selection-color"], "#d97757");
+  const light = await read(["bg", "workbench-bg", "accent", "accent-contrast", "user-bg", "text", "text-muted", "text-dim", "menu-selection-color", "diff-added", "diff-removed"]);
+  assert.equal(light.accent, "#da7756");
+  assert.equal(light.bg, "#f5f3ee");
+  assert.equal(light["workbench-bg"], "#f5f3ee");
+  assert.equal(light.text, "#1d1b16");
+  assert.equal(light["menu-selection-color"], "#da7756");
+  assert.equal(light["diff-added"], "#00c853");
+  assert.equal(light["diff-removed"], "#ff5f38");
   // Neutral text keeps this fork's contrast floors on the palette's surfaces
   // (4.5:1 labels, 3:1 dim). The terracotta accent is a brand fill and is
   // deliberately exempt — see the Claude block in native-theme.css.
@@ -85,11 +88,13 @@ try {
   await page.getByRole("radio", { name: "Dark", exact: true }).locator("..").click();
   await page.waitForFunction(() => document.documentElement.dataset.theme === "dark");
   assert.equal(await page.evaluate(() => document.documentElement.dataset.palette), "claude");
-  const dark = await read(["bg", "workbench-bg", "accent", "text", "text-muted", "text-dim", "surface-elevated", "user-bg", "menu-selection-color"]);
-  assert.equal(dark.bg, "#1f1f1f");
-  assert.equal(dark["workbench-bg"], "#191919");
-  assert.equal(dark.accent, "#d97757");
-  assert.equal(dark["menu-selection-color"], "#d97757");
+  const dark = await read(["bg", "workbench-bg", "accent", "text", "text-muted", "text-dim", "surface-elevated", "user-bg", "menu-selection-color", "diff-added", "diff-removed"]);
+  assert.equal(dark.bg, "#24221f");
+  assert.equal(dark["workbench-bg"], "#24221f");
+  assert.equal(dark.accent, "#da7756");
+  assert.equal(dark["menu-selection-color"], "#da7756");
+  assert.equal(dark["diff-added"], "#00c853");
+  assert.equal(dark["diff-removed"], "#ff5f38");
   for (const [fg, floor] of [["text", 4.5], ["text-muted", 4.5], ["text-dim", 3]]) {
     for (const bg of ["bg", "workbench-bg", "surface-elevated", "user-bg"]) {
       assert.ok(contrast(dark[fg], dark[bg]) >= floor, `claude dark: ${fg} on ${bg}`);

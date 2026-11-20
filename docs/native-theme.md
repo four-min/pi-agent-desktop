@@ -53,9 +53,9 @@ manual merge, run it yourself.
    `hooks/useThemePalette.ts` sets `<html data-palette>` (registry: `lib/theme-palettes.ts`,
    restored before first paint by `PALETTE_INIT_SCRIPT` in `app/layout.tsx`), and the
    palette token blocks at the end of this file repaint the same semantic tokens.
-   "default" carries no attribute. The first built-in is **Claude** — Claude Desktop's
-   warm terracotta (`#d97757` accent, `#fafafa` / `#1f1f1f` chrome, white / `#191919`
-   reading canvas), after Nwflower/dsh-claude-style (MIT). A palette owns its accent:
+   "default" carries no attribute. The first built-in is **Claude** — warm beige (`#f5f3ee` /
+   `#24221f` surface, `#1d1b16` / `#f0ede4` ink, `#da7756` terracotta orange accent, Absolutely
+   code highlighting with `#00c853` / `#ff5f38` diff colors). A palette owns its accent:
    it must override the `@supports (color: AccentColor)` system-accent block, which is
    why the palette blocks sit last. Add a theme = one registry entry + one light/dark
    token block pair + swatch colours for the picker. `node e2e/palettes.mjs` covers

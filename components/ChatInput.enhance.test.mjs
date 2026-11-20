@@ -168,6 +168,10 @@ test("the wiring reaches the session route and the settings row", () => {
   assert.match(buttonSource, /chat\.enhancePrompt/);
   const settings = readFileSync(new URL("./SettingsPanel.tsx", import.meta.url), "utf8");
   assert.match(settings, /<PromptEnhanceSettingRow \/>/);
+  const settingRow = readFileSync(new URL("./PromptEnhanceSettingRow.tsx", import.meta.url), "utf8");
+  assert.match(settingRow, /settings\.promptEnhancePrompt/);
+  assert.match(settingRow, /settings\.promptEnhancePromptReset/);
+  assert.match(settingRow, /handleResetPrompt/);
 });
 
 test("a brand-new session shows the button and creates its runtime on demand", () => {

@@ -1291,14 +1291,20 @@ export class AgentSessionWrapper {
   async enhancePromptDraft(draft: string): Promise<{ text: string }> {
     this.resetIdleTimer();
     const runtime = this.inner.modelRuntime as unknown as Parameters<typeof enhancePrompt>[0];
-    const configured = readPromptEnhanceSettings().model;
+    const enhanceSettings = readPromptEnhanceSettings();
+    const configured = enhanceSettings.model;
     const current = this.inner.model;
     const requested = configured ?? (current ? { provider: current.provider, modelId: current.id } : null);
     const model = requested
       ? (this.inner.modelRuntime.getModel(requested.provider, requested.modelId) ?? this.inner.model)
       : this.inner.model;
     if (!model) throw new Error("No model is available for prompt enhancement");
-    const text = await enhancePrompt(runtime, model as unknown as Parameters<typeof enhancePrompt>[1], draft);
+    const text = await enhancePrompt(
+      runtime,
+      model as unknown as Parameters<typeof enhancePrompt>[1],
+      draft,
+      enhanceSettings.prompt,
+    );
     this.resetIdleTimer();
     return { text };
   }

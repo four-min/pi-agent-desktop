@@ -105,11 +105,11 @@ no transcript entry, no tools, no run, safe while a run streams; it resets the
 idle timer on both ends. `lib/prompt-enhance.ts` builds the bounded one-turn
 request (system prompt + `<draft>` block, cheapest supported thinking level,
 fresh session id, `cacheRetention: "none"`, 120 s timeout, 24 000-char draft cap)
-and strips a whole-answer code fence. The model comes from
-`lib/prompt-enhance-settings.ts` (`promptEnhance.model` in pi-web's settings.json,
+and strips a whole-answer code fence. The model and optional custom rewrite instructions come from
+`lib/prompt-enhance-settings.ts` (`promptEnhance.model` and `promptEnhance.prompt` in pi-web's settings.json,
 `GET/PUT /api/prompt-enhance/settings`); unset — the default — follows the
-conversation's current model, with the session's own model as fallback when the
-configured one left the catalog. Settings › General › Chat hosts the picker
+conversation's current model (with the session's own model as fallback when the
+configured one left the catalog) and uses `DEFAULT_PROMPT_ENHANCE_INSTRUCTIONS`. Settings › General › Chat hosts the picker and the instructions textarea with a Reset to default control
 (`components/PromptEnhanceSettingRow.tsx`, AppSelect, same enabled-models-scoped
 list as the Chats section). Client hook: `hooks/usePromptEnhance.ts` (one request
 at a time, abortable). Tests: `node --test lib/prompt-enhance*.test.mjs

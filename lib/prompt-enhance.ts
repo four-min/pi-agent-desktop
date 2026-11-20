@@ -8,11 +8,12 @@ import { getSupportedThinkingLevels } from "@earendil-works/pi-ai";
 const ENHANCE_TIMEOUT_MS = 120_000;
 const ENHANCE_MAX_TOKENS = 4096;
 export const PROMPT_ENHANCE_MAX_CHARS = 24_000;
+export const PROMPT_ENHANCE_INSTRUCTIONS_MAX_CHARS = 8000;
 
 const ENHANCE_SYSTEM_PROMPT =
   "You rewrite draft prompts for a coding-and-chat AI assistant. Reply with the rewritten prompt only.";
 
-const ENHANCE_INSTRUCTIONS = `Rewrite the draft prompt below into a clearer, more complete prompt for an AI assistant.
+export const DEFAULT_PROMPT_ENHANCE_INSTRUCTIONS = `Rewrite the draft prompt below into a clearer, more complete prompt for an AI assistant.
 
 Requirements:
 - Keep the user's language, intent, and every concrete detail (names, paths, code, numbers, constraints).
@@ -20,6 +21,11 @@ Requirements:
 - Keep the original format where it matters (code blocks, lists, quoted text); do not invent facts or requirements the user did not imply.
 - Do not answer the prompt, do not call any tools, and do not add commentary, prefaces, or explanations.
 - Return only the rewritten prompt as plain text or Markdown, ready to send as-is.`;
+
+export function resolvePromptEnhanceInstructions(instructions?: string | null): string {
+  const trimmed = typeof instructions === "string" ? instructions.trim() : "";
+  return trimmed || DEFAULT_PROMPT_ENHANCE_INSTRUCTIONS;
+}
 
 /** The part of pi's ModelRuntime a one-shot completion needs. */
 export interface PromptEnhanceRuntime {
@@ -50,15 +56,20 @@ export function resolveEnhanceThinkingLevel(model: Model<Api>): ThinkingLevel {
  * draft, no tools, a fresh session id, and no cache — the request is too small
  * and too unique to reuse the live conversation's prefix.
  */
-export function buildPromptEnhanceRequest(model: Model<Api>, draft: string): PromptEnhanceRequest {
+export function buildPromptEnhanceRequest(
+  model: Model<Api>,
+  draft: string,
+  instructions?: string | null,
+): PromptEnhanceRequest {
   const thinkingLevel = resolveEnhanceThinkingLevel(model);
+  const resolvedInstructions = resolvePromptEnhanceInstructions(instructions);
   return {
     model,
     context: {
       systemPrompt: ENHANCE_SYSTEM_PROMPT,
       messages: [{
         role: "user",
-        content: [{ type: "text", text: `${ENHANCE_INSTRUCTIONS}\n\n<draft>\n${draft}\n</draft>` }],
+        content: [{ type: "text", text: `${resolvedInstructions}\n\n<draft>\n${draft}\n</draft>` }],
         timestamp: Date.now(),
       }],
     },
@@ -95,13 +106,14 @@ export async function enhancePrompt(
   runtime: PromptEnhanceRuntime,
   model: Model<Api>,
   draft: string,
+  instructions?: string | null,
 ): Promise<string> {
   const trimmed = draft.trim();
   if (!trimmed) throw new Error("The draft is empty");
   if (trimmed.length > PROMPT_ENHANCE_MAX_CHARS) {
     throw new Error(`The draft is limited to ${PROMPT_ENHANCE_MAX_CHARS} characters`);
   }
-  const { context, options } = buildPromptEnhanceRequest(model, trimmed);
+  const { context, options } = buildPromptEnhanceRequest(model, trimmed, instructions);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), ENHANCE_TIMEOUT_MS);
   try {

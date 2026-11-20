@@ -43,9 +43,9 @@
    **内置主题**（设置 › 外观 › 主题）叠加在明暗模式之上：`hooks/useThemePalette.ts` 设置
    `<html data-palette>`（注册表在 `lib/theme-palettes.ts`，`app/layout.tsx` 里的
    `PALETTE_INIT_SCRIPT` 在首帧前恢复），文件末尾的主题 token 块重绘同一组语义变量。
-   “默认”不带属性。第一个内置主题是 **Claude**——Claude Desktop 的暖陶土色
-   （强调色 `#d97757`，外围 `#fafafa` / `#1f1f1f`，阅读面白色 / `#191919`），
-   参考 Nwflower/dsh-claude-style（MIT）。主题拥有自己的强调色：必须盖过
+   “默认”不带属性。第一个内置主题是 **Claude**——暖米色与陶土橙
+   （表面 `#f5f3ee` / `#24221f`，墨色文字 `#1d1b16` / `#f0ede4`，强调色 `#da7756`，
+   Absolutely 代码高亮与 `#00c853` / `#ff5f38` diff 配色）。主题拥有自己的强调色：必须盖过
    `@supports (color: AccentColor)` 的系统强调色块，所以主题块放在文件最后。
    新增主题 = 一条注册表项 + 一对浅/深 token 块 + 选择器的色板颜色。
    验证命令为 `node e2e/palettes.mjs`（选择、变量、持久化、与跟随系统的配合）。

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { hasJsonContentType, isApiRequestAllowed } from "@/lib/request-security";
 import {
+  DEFAULT_PROMPT_ENHANCE_INSTRUCTIONS,
+  PROMPT_ENHANCE_INSTRUCTIONS_MAX_CHARS,
   readPromptEnhanceSettings,
   validatePromptEnhancePatch,
   writePromptEnhanceSettings,
@@ -8,8 +10,16 @@ import {
 
 export const dynamic = "force-dynamic";
 
+function withPromptMeta(settings: ReturnType<typeof readPromptEnhanceSettings>) {
+  return {
+    ...settings,
+    defaultPrompt: DEFAULT_PROMPT_ENHANCE_INSTRUCTIONS,
+    promptMaxChars: PROMPT_ENHANCE_INSTRUCTIONS_MAX_CHARS,
+  };
+}
+
 export async function GET() {
-  return NextResponse.json(readPromptEnhanceSettings());
+  return NextResponse.json(withPromptMeta(readPromptEnhanceSettings()));
 }
 
 export async function PUT(req: Request) {
@@ -26,7 +36,7 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 400 });
   }
   try {
-    return NextResponse.json(writePromptEnhanceSettings(patch));
+    return NextResponse.json(withPromptMeta(writePromptEnhanceSettings(patch)));
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
