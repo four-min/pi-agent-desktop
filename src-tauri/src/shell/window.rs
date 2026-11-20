@@ -48,7 +48,7 @@ pub fn build_window(app: &tauri::AppHandle, app_url: Url) -> tauri::Result<Webvi
     let stored_theme = read_stored_theme(app);
 
     let mut builder = WebviewWindowBuilder::new(app, WINDOW_LABEL, WebviewUrl::External(app_url))
-        .title("Pi Agent")
+        .title("Pi Harness")
         .inner_size(1440.0, 900.0)
         .min_inner_size(900.0, 600.0)
         .resizable(true)

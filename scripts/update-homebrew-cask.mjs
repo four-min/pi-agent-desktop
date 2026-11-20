@@ -18,16 +18,17 @@ export function updateCask(source, version, armSha256, intelSha256) {
   if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error(`Invalid version: ${version}`);
   if (!SHA256.test(armSha256)) throw new Error(`Invalid arm64 sha256: ${armSha256}`);
   if (!SHA256.test(intelSha256)) throw new Error(`Invalid x86_64 sha256: ${intelSha256}`);
-  const head = /^(cask "pi-agent" do\n)[\s\S]*?\n(  name "Pi Agent"\n)/m;
-  if (!head.test(source)) throw new Error("Casks/pi-agent.rb has no cask head to update");
-  return source
+  const normalized = source.replace(/\r\n/g, "\n");
+  const head = /^(cask "pi-agent" do\n)[\s\S]*?\n(  name "Pi Harness"\n)/m;
+  if (!head.test(normalized)) throw new Error("Casks/pi-agent.rb has no cask head to update");
+  return normalized
     .replace(head, (_, open, name) => [
       open,
       `  arch arm: "aarch64", intel: "x64"\n\n`,
       `  version "${version}"\n`,
       `  sha256 arm:   "${armSha256}",\n`,
       `         intel: "${intelSha256}"\n\n`,
-      `  url "https://github.com/abcwyc/pi-agent-desktop/releases/download/v#{version}/Pi.Agent_#{version}_macOS_#{arch}.dmg"\n`,
+      `  url "https://github.com/four-min/pi-agent-desktop/releases/download/v#{version}/Pi.Harness_#{version}_macOS_#{arch}.dmg"\n`,
       name,
     ].join(""))
     .replace(/^  depends_on arch: :arm64\n/m, "");

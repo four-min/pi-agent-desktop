@@ -114,9 +114,9 @@ jobs:
           mkdir -p "$out"
           dmgs=("$bundle"/dmg/*_x64.dmg)
           test "${#dmgs[@]}" -eq 1 && test -f "${dmgs[0]}"
-          cp "${dmgs[0]}" "$out/Pi.Agent_${VERSION}_x64.dmg"
-          cp "$bundle/macos/Pi Agent.app.tar.gz" "$out/Pi.Agent_${VERSION}_x64.app.tar.gz"
-          cp "$bundle/macos/Pi Agent.app.tar.gz.sig" "$out/Pi.Agent_${VERSION}_x64.app.tar.gz.sig"
+          cp "${dmgs[0]}" "$out/Pi.Harness_${VERSION}_x64.dmg"
+          cp "$bundle/macos/Pi Harness.app.tar.gz" "$out/Pi.Harness_${VERSION}_x64.app.tar.gz"
+          cp "$bundle/macos/Pi Harness.app.tar.gz.sig" "$out/Pi.Harness_${VERSION}_x64.app.tar.gz.sig"
           gh release upload "v$VERSION" -R "$GITHUB_REPOSITORY" "$out"/*
 
       - name: Add darwin-x86_64 to latest.json
@@ -124,10 +124,10 @@ jobs:
           set -euo pipefail
           out="$RUNNER_TEMP/intel"
           asset_id="$(gh release view "v$VERSION" -R "$GITHUB_REPOSITORY" --json assets \
-            --jq ".assets[] | select(.name == \"Pi.Agent_${VERSION}_x64.app.tar.gz\") | .apiUrl" | sed 's#.*/##')"
+            --jq ".assets[] | select(.name == \"Pi.Harness_${VERSION}_x64.app.tar.gz\") | .apiUrl" | sed 's#.*/##')"
           test -n "$asset_id"
           url="https://api.github.com/repos/$GITHUB_REPOSITORY/releases/assets/$asset_id"
-          signature="$(cat "$out/Pi.Agent_${VERSION}_x64.app.tar.gz.sig")"
+          signature="$(cat "$out/Pi.Harness_${VERSION}_x64.app.tar.gz.sig")"
           gh release download "v$VERSION" -R "$GITHUB_REPOSITORY" -p latest.json -D "$RUNNER_TEMP/manifest"
           jq --arg url "$url" --arg signature "$signature" \
             '.platforms["darwin-x86_64"] = {signature: $signature, url: $url}

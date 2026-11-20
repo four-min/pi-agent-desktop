@@ -48,7 +48,7 @@ const DEV_SERVER_URL: &str = "http://127.0.0.1:30141";
 /// Preferred localhost port for the packaged Next server. Keeping this stable
 /// matters because the webview's localStorage is origin-scoped (`host:port`).
 #[cfg(feature = "custom-protocol")]
-const DESKTOP_SERVER_PORT: u16 = 38471;
+const DESKTOP_SERVER_PORT: u16 = 38571;
 /// How long startup waits for the server to answer. A login launch gets far
 /// longer: the machine is busiest right after sign-in (antivirus scans, disk
 /// and startup apps all compete), the window is hidden anyway, and giving up
@@ -1015,9 +1015,9 @@ fn report_startup_failure(app: &AppHandle, error: &str) {
     let handle = app.clone();
     app.dialog()
         .message(format!(
-            "Pi Agent could not start its background service.\n\n{error}\n\nOpening the app again retries."
+            "Pi Harness could not start its background service.\n\n{error}\n\nOpening the app again retries."
         ))
-        .title("Pi Agent")
+        .title("Pi Harness")
         .kind(MessageDialogKind::Error)
         .show(move |_| handle.exit(1));
 }
@@ -1063,7 +1063,7 @@ fn instance_lock_path() -> Option<PathBuf> {
                 .filter(|value| !value.is_empty())
                 .map(|value| PathBuf::from(value).join(".config"))
         });
-    base.map(|value| value.join("com.abcwyc.pi-agent").join("pi-agent.lock"))
+    base.map(|value| value.join("com.fourmin.pi-harness").join("pi-harness.lock"))
 }
 
 #[cfg(target_os = "linux")]
@@ -1071,7 +1071,7 @@ fn process_is_our_app(pid: i32) -> bool {
     fs::read_to_string(format!("/proc/{pid}/cmdline"))
         .map(|content| {
             let lowered = content.to_lowercase();
-            lowered.contains("pi-agent") || lowered.contains("pi agent")
+            lowered.contains("pi-harness") || lowered.contains("pi harness")
         })
         .unwrap_or(false)
 }
@@ -1395,7 +1395,7 @@ pub fn run() {
             }
         })
         .build(tauri::generate_context!())
-        .expect("failed to build Pi Agent desktop app");
+        .expect("failed to build Pi Harness desktop app");
 
     app.run(|app_handle, event| match event {
         // The main window is being replaced after its WebView died; the

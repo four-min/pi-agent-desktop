@@ -146,55 +146,11 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ matrix.apple_signing_identity }}
         with:
           tagName: v__VERSION__
-          releaseName: pi-agent-desktop v__VERSION__
+          releaseName: Pi Harness v__VERSION__
           releaseBody: |
-            ## Pi Agent Desktop 0.8.7
-
-            ### New
-
-            - **Plugin marketplace.** Settings › Plugins can browse and search community packages on npm that declare `pi-package`, show their details, and install one for all projects or just the current one. A listing is the publisher's own claim, not a compatibility check.
-            - **Long pastes.** Pasting 2,000 or more characters into the composer adds them as a "Pasted text" attachment you can open or turn back into text. A message carrying attachments is never run as a `/command` or `!shell` command.
-            - **llama.cpp.** Settings › Models can add pi's built-in llama.cpp provider pointed at your router server (default `127.0.0.1:8080`), and custom providers get a Display name.
-            - **New icon.** The π. mark replaces the old icon; on macOS it now follows Apple's icon grid and sits the same size as other Dock icons.
-
-            ### Improved
-
-            - Recalling a past prompt from the composer's history brings back its images too, not only the text.
-            - Fetching a provider's models also reads its reasoning levels and image input; the provider key field is labelled Provider ID.
-            - macOS downloads are named `…_macOS_aarch64.dmg` (Apple Silicon) and `…_macOS_x64.dmg` (Intel), so both sit together in the release's file list.
-
-            ### Fixed
-
-            - Testing a model sends a session id, which fixes `400 MissingSessionID` from opencode.ai; a `!command` API key runs once per test.
-            - The enabled-models list respects project trust, and `auth.json` / `settings.json` with a BOM or empty content no longer fail to load.
-            - A sign-in that the page has already closed no longer crashes the server when an extension answers late.
+            ## Pi Harness v__VERSION__
 
             Bundled components: pi 1.5.2, pi-web 0.15.0.
-
-            ---
-
-            ## Pi Agent Desktop 0.8.7
-
-            ### 新增
-
-            - **插件市场。** 设置 › 插件可浏览、搜索 npm 上声明了 `pi-package` 的社区包，查看详情，并安装到全局或当前项目。收录仅代表发布者自己的声明，不代表已验证兼容性。
-            - **长文本作附件。** 在输入框粘贴 2,000 个字符以上的文本时，会添加为“粘贴文本”附件，可打开查看或“改为正文”。带附件的消息不会被当作 `/命令` 或 `!shell` 命令执行。
-            - **llama.cpp。** 设置 › 模型可添加 pi 内置的 llama.cpp Provider，指向你的路由服务器（默认 `127.0.0.1:8080`）；自定义 Provider 可设置显示名称。
-            - **新图标。** 应用图标换为新的 π. 标志；macOS 版按苹果图标网格留边，在 Dock 里与其他图标一样大。
-
-            ### 改进
-
-            - 从输入历史中调出以前的提示时，其中的图片也会一并恢复，而不只是文字。
-            - 拉取 Provider 的模型列表时会读取推理等级和图片输入；Provider 的键字段改名为 Provider ID。
-            - macOS 安装包改名为 `…_macOS_aarch64.dmg`（Apple 芯片）和 `…_macOS_x64.dmg`（Intel 芯片），在发布页的文件列表里排在一起。
-
-            ### 修复
-
-            - 测试模型时会带上会话 ID，修复 opencode.ai 返回 `400 MissingSessionID` 的问题；`!command` 形式的 API 密钥每次测试只执行一次。
-            - 已启用模型列表遵循项目信任设置；`auth.json`、`settings.json` 带 BOM 或为空时不再读取失败。
-            - 页面已关闭的登录流程在扩展延迟回应时不再导致服务器崩溃。
-
-            内置组件版本：pi 1.5.2、pi-web 0.15.0。
           releaseDraft: true
           prerelease: false
           uploadUpdaterJson: true

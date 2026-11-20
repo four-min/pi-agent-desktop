@@ -11,7 +11,7 @@ test("updateCask serves the aarch64 DMG to Apple Silicon and the x64 DMG to Inte
   assert.match(next, /^  arch arm: "aarch64", intel: "x64"$/m);
   assert.match(next, /^  version "9\.8\.7"$/m);
   assert.match(next, new RegExp(`^  sha256 arm:   "${ARM}",\\n         intel: "${INTEL}"$`, "m"));
-  assert.match(next, /releases\/download\/v#\{version\}\/Pi\.Agent_#\{version\}_macOS_#\{arch\}\.dmg"$/m);
+  assert.match(next, /releases\/download\/v#\{version\}\/Pi\.Harness_#\{version\}_macOS_#\{arch\}\.dmg"$/m);
   assert.doesNotMatch(next, /depends_on arch:/);
   assert.equal(next.match(/^  sha256 /gm).length, 1);
   assert.equal(next.match(/^  url /gm).length, 1);
@@ -27,9 +27,9 @@ test("updateCask is stable on a cask it already wrote", async () => {
 });
 
 test("updateCask keeps the rest of the cask", async () => {
-  const source = await readFile(CASK_PATH, "utf8");
+  const source = (await readFile(CASK_PATH, "utf8")).replace(/\r\n/g, "\n");
   const next = updateCask(source, "9.8.7", ARM, INTEL);
-  const tail = (text) => text.slice(text.indexOf('  name "Pi Agent"'));
+  const tail = (text) => text.slice(text.indexOf('  name "Pi Harness"'));
   assert.equal(tail(next), tail(source).replace(/^  depends_on arch: :arm64\n/m, ""));
 });
 
