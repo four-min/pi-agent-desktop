@@ -9,6 +9,8 @@
  * - 本地静态资源落盘路径: public/mascot/crab/<animation>.png 与 public/mascot/crab/<animation>-ink.png
  */
 
+import { isApplyPatchToolName, isEditToolName, isWriteToolName } from "./tool-names";
+
 export type PlayMode = "loop" | "once";
 
 export type MascotMoment = "error" | "attention";
@@ -90,6 +92,8 @@ export interface MascotSignalInput {
   turnPhase?: MascotTurnPhase | null;
   busySessionCount?: number;
   runningSubagentCount?: number;
+  /** A file-writing tool (write / edit / apply_patch) is running in this session. */
+  isEditingFile?: boolean;
 }
 
 /** 逻辑网格尺寸: 52x36 逻辑像素格, 每格渲染为 2x2 CSS 像素 (容器尺寸 104x72px). */
@@ -127,6 +131,12 @@ export const LEVEL_IDLE: MascotLevel = { state: "idle", animation: "idle", prior
 export const LEVEL_THINKING: MascotLevel = { state: "thinking", animation: "thinking", priority: 2 };
 export const LEVEL_SWEEPING: MascotLevel = { state: "sweeping", animation: "compacting", priority: 6 };
 export const LEVEL_NOTIFICATION: MascotLevel = { state: "notification", animation: "notification", priority: 7 };
+export const LEVEL_BUILDING: MascotLevel = { state: "building", animation: "building", priority: 3 };
+
+/** File-writing tools (write / edit / apply_patch, including MCP-decorated names) play the "building" animation. */
+export function isFileEditingToolName(toolName: string): boolean {
+  return isWriteToolName(toolName) || isEditToolName(toolName) || isApplyPatchToolName(toolName);
+}
 
 /**
  * 19 组动作精灵表几何参数 (取自 Nwflower/dsh-claude-style packages/client/src/features/mascot/sheets.ts).
@@ -373,6 +383,9 @@ export function resolveMascotLevel(input: MascotSignalInput): MascotLevel {
       animation: subagents >= 2 ? "conducting" : "music",
       priority: 4,
     };
+  }
+  if (input.isEditingFile) {
+    return LEVEL_BUILDING;
   }
   const busy = Math.max(1, input.busySessionCount ?? 1);
   if (input.turnPhase === "working") {

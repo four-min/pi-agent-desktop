@@ -37,6 +37,8 @@ export interface ComposerMascotProps {
   hasNotification?: boolean;
   /** 当前回合阶段: 思考或输出/工具执行. */
   turnPhase?: MascotTurnPhase | null;
+  /** A file-writing tool (write / edit / apply_patch) is running: plays the "building" animation. */
+  isEditingFile?: boolean;
   /** 错误信息 (出现新错误时触发 error 瞬时反馈动画). */
   errorMessage?: string | null;
   /** 完成标识 (变化时触发 happy 庆祝瞬时动画). */
@@ -66,6 +68,7 @@ export function ComposerMascot({
   branchSummaryPending = false,
   hasNotification = false,
   turnPhase = null,
+  isEditingFile = false,
   errorMessage = null,
   completionKey = null,
   activityToken = null,
@@ -323,6 +326,7 @@ export function ComposerMascot({
       branchSummaryPending,
       hasNotification,
       turnPhase,
+      isEditingFile,
     });
     step();
   }, [
@@ -331,6 +335,7 @@ export function ComposerMascot({
     errorMessage,
     hasNotification,
     isCompacting,
+    isEditingFile,
     isStreaming,
     step,
     turnPhase,

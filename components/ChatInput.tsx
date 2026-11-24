@@ -64,6 +64,7 @@ import { ComposerProjectChip, getProjectLabel } from "./ComposerProjectChip";
 import { ComposerOutbox, type ComposerQueueAction } from "./ComposerOutbox";
 import { ComposerEnhanceButton } from "./ComposerEnhanceButton";
 import { ComposerMascot } from "./ComposerMascot";
+import type { MascotTurnPhase } from "@/lib/composer-mascot";
 import { useSessionMentionPalette } from "@/hooks/useSessionMentionPalette";
 
 
@@ -144,6 +145,10 @@ interface Props {
   routedModel?: RoutedModelInfo | null;
   /** A summarized branch switch is generating its summary (blocking; abortable). */
   branchSummaryPending?: boolean;
+  /** Composer mascot: the run is waiting on the model ("thinking") or running tools ("working"). */
+  mascotTurnPhase?: MascotTurnPhase | null;
+  /** Composer mascot: a file-writing tool is running (plays "building"). */
+  mascotEditingFile?: boolean;
   onAbortBranchSummary?: () => void;
   automation?: { autoCompactionEnabled: boolean | null; autoRetryEnabled: boolean | null; steeringMode: string | null; followUpMode: string | null };
   onSetAutomation?: (change: {
@@ -856,6 +861,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   sessionStats,
   onSessionStatsPanelOpen,
   compact = false,
+  mascotTurnPhase = null,
+  mascotEditingFile = false,
 }: Props, ref) {
   const { t } = useI18n();
   const { fontSize } = useChatAppearance();
@@ -2964,6 +2971,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
               errorMessage={modelError ?? compactError ?? retryInfo?.errorMessage ?? null}
               completionKey={compactResultText}
               activityToken={value}
+              turnPhase={mascotTurnPhase}
+              isEditingFile={mascotEditingFile}
             />
           )}
           <div

@@ -26,6 +26,7 @@ import { AnsiText } from "./AnsiText";
 import { useI18n } from "@/hooks/useI18n";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { phaseLabel } from "@/lib/chat-phase-label";
+import { isFileEditingToolName, type MascotTurnPhase } from "@/lib/composer-mascot";
 import { useAgentSession, type AgentEndInfo, type NoticeItem } from "@/hooks/useAgentSession";
 import { useDragDrop } from "@/hooks/useDragDrop";
 import { useScrollbarVisibility } from "@/hooks/useScrollbarVisibility";
@@ -1183,6 +1184,19 @@ export function ChatWindow({ session, workspaceKind, searchTarget, onSearchTarge
     }));
   }, [messages.length, scrollContainerRef]);
 
+  // Composer mascot signals derived from the live run phase: a running write/edit/apply_patch
+  // plays "building", any other running tool plays "working", waiting on the model plays "thinking".
+  const mascotTurnPhase: MascotTurnPhase | null = !agentRunning
+    ? null
+    : agentPhase?.kind === "running_tools"
+      ? "working"
+      : agentPhase?.kind === "waiting_model"
+        ? "thinking"
+        : null;
+  const mascotEditingFile = agentRunning
+    && agentPhase?.kind === "running_tools"
+    && agentPhase.tools.some((tool) => isFileEditingToolName(tool.name));
+
   const chatInputElement = (
     <ChatInput
       ref={chatInputRef}
@@ -1256,6 +1270,8 @@ export function ChatWindow({ session, workspaceKind, searchTarget, onSearchTarge
       onSessionStatsPanelOpen={onSessionStatsPanelOpen}
       contextUsage={contextUsage}
       sessionStats={sessionStats}
+      mascotTurnPhase={mascotTurnPhase}
+      mascotEditingFile={mascotEditingFile}
     />
   );
 
