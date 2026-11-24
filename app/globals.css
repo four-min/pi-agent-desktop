@@ -303,36 +303,8 @@ html.dark .catppuccin-file-icon {
   background-image: var(--catppuccin-icon-dark);
 }
 
-/* File-type tones for the file tree (components/FileIcons.tsx ICON_TONES).
-   Muted so they sit beside --text-dim; the light set keeps >= 3:1 on white,
-   the dark set on #1a1a1a. Every dark theme carries html.dark (hooks/useTheme.ts). */
-:root {
-  --file-icon-folder: #b7791f;
-  --file-icon-ts: #2f6fde;
-  --file-icon-js: #8f7a00;
-  --file-icon-code: #0f7a6d;
-  --file-icon-style: #7c4ddb;
-  --file-icon-markup: #c2531b;
-  --file-icon-config: #4f7d1c;
-  --file-icon-docs: #0b7fa6;
-  --file-icon-image: #c03a8c;
-}
-html.dark {
-  --file-icon-folder: #e3b565;
-  --file-icon-ts: #7fa9f5;
-  --file-icon-js: #e2d27a;
-  --file-icon-code: #6fcfc0;
-  --file-icon-style: #c2a6f3;
-  --file-icon-markup: #f2a37c;
-  --file-icon-config: #a6d58a;
-  --file-icon-docs: #7cc6e6;
-  --file-icon-image: #f0a3cf;
-}
-
 /* Use the SVG alpha channel as a mask so file icons follow the app's
-   restrained text palette instead of Catppuccin's language-specific colors.
-   Inside .file-icon-tinted (the file tree) each icon takes its type's tone;
-   unknown files and untinted surfaces stay --text-dim. */
+   restrained text palette instead of Catppuccin's language-specific colors. */
 @supports (mask-image: url("mask.svg")) or (-webkit-mask-image: url("mask.svg")) {
   .catppuccin-file-icon {
     background: var(--text-dim);
@@ -343,9 +315,6 @@ html.dark {
     background: var(--text-dim);
     mask-image: var(--catppuccin-icon-dark);
     -webkit-mask-image: var(--catppuccin-icon-dark);
-  }
-  .file-icon-tinted .catppuccin-file-icon {
-    background: var(--file-icon-tone-color, var(--text-dim));
   }
 }
 
