@@ -1,9 +1,9 @@
 cask "pi-agent" do
   arch arm: "aarch64", intel: "x64"
 
-  version "1.0.0"
-  sha256 arm:   "440cea349d80f8852839a48e9795c39b3c366806f6574f3ba1c622269c5d03d2",
-         intel: "f1f57dd969839b12f62dd982214101812dc6f046ae1fe599936e513f2a5438db"
+  version "1.0.1"
+  sha256 arm:   "7151dfbc838a793ee5d8a636b895e3df6fc3ada0b1c1204aaea96ebe4c04d875",
+         intel: "965079295402cc7ef82a11c2bcd108c2a9f2cc81448a6f24b7d784e13e4cfc57"
 
   url "https://github.com/four-min/pi-agent-desktop/releases/download/v#{version}/Pi.Harness_#{version}_macOS_#{arch}.dmg"
   name "Pi Harness"
